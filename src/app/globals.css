@@ -1,0 +1,190 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-highlight: var(--highlight);
+}
+
+@layer base {
+  :root {
+    --primary: #062D54;
+    --secondary: #74777c;
+    --highlight: #E11D48;
+    --background: #ffffff;
+    --foreground: #062D54;
+    --card: #ffffff;
+    --card-foreground: #062D54;
+    --popover: #ffffff;
+    --popover-foreground: #062D54;
+    --primary-foreground: #ffffff;
+    --secondary-foreground: #062D54;
+    --muted: #f1f5f9;
+    --muted-foreground: #90A1B9;
+    --accent: #f8fafc;
+    --accent-foreground: #062D54;
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
+    --border: #e2e8f0;
+    --input: #e2e8f0;
+    --ring: #062D54;
+    --radius: 0.75rem;
+  }
+
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+  }
+}
+
+/* Custom scrollbar derived from --secondary */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--secondary) 30%, transparent);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--secondary) 50%, transparent);
+}
+
+/* ==========================================================================
+   Table Action Buttons & Groups (Reusable Styling)
+   ========================================================================== */
+
+/* Container for grouped table actions */
+.table-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  vertical-align: middle;
+}
+
+/* Base style for table action buttons and links */
+.table-actions>button,
+.table-actions>a,
+.table-actions>.table-action-btn,
+.table-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--primary);
+  border: 1px solid var(--border);
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+  cursor: pointer;
+  text-decoration: none;
+  user-select: none;
+}
+
+/* Eliminate gap and prevent double borders between grouped buttons */
+.table-actions> :not(:first-child) {
+  margin-left: -1px;
+}
+
+/* --------------------------------------------------------------------------
+   CASE 1: Exactly 1 Button
+   - border-radius: 6px
+   - Background: slate-100 (#f1f5f9)
+   - Hover background: slate-200 (#e2e8f0)
+   -------------------------------------------------------------------------- */
+.table-actions> :only-child,
+.table-actions>.table-action-btn:only-child,
+.table-action-btn-single {
+  border-radius: 6px !important;
+  background-color: #f1f5f9;
+  color: var(--primary);
+}
+
+.table-actions> :only-child:hover,
+.table-actions>.table-action-btn:only-child:hover,
+.table-action-btn-single:hover {
+  background-color: #e2e8f0;
+  color: var(--primary);
+}
+
+/* --------------------------------------------------------------------------
+   CASE 2: 2 or More Buttons (Grouped)
+   - First button: rounded left corners only (6px)
+   - Last button: rounded right corners only (6px)
+   - Middle buttons: rounded-none (0)
+   - No gap between them
+   - Alternating backgrounds:
+     * 1st (odd): bg-white (#ffffff)
+     * 2nd (even): bg-slate-100 (#f1f5f9)
+     * 3rd (odd): bg-white (#ffffff)
+     * 4th (even): bg-slate-100 (#f1f5f9)
+     ...
+   -------------------------------------------------------------------------- */
+
+/* Default reset for multi-button children */
+.table-actions> :not(:only-child) {
+  border-radius: 0;
+}
+
+/* First button: rounded left corners only */
+.table-actions> :not(:only-child):first-child {
+  border-top-left-radius: 6px;
+  border-bottom-left-radius: 6px;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* Last button: rounded right corners only */
+.table-actions> :not(:only-child):last-child {
+  border-top-right-radius: 6px;
+  border-bottom-right-radius: 6px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+/* Middle buttons: explicitly no border-radius */
+.table-actions> :not(:only-child):not(:first-child):not(:last-child) {
+  border-radius: 0;
+}
+
+/* Alternating background: Odd buttons (1st, 3rd, 5th...) when multiple */
+.table-actions> :not(:only-child):nth-child(odd) {
+  background-color: #ffffff;
+  color: var(--primary);
+}
+
+.table-actions> :not(:only-child):nth-child(odd):hover {
+  background-color: #f8fafc;
+  color: var(--primary);
+}
+
+/* Alternating background: Even buttons (2nd, 4th, 6th...) when multiple */
+.table-actions> :not(:only-child):nth-child(even) {
+  background-color: #f1f5f9;
+  color: var(--primary);
+}
+
+.table-actions> :not(:only-child):nth-child(even):hover {
+  background-color: #e2e8f0;
+  color: var(--primary);
+}
