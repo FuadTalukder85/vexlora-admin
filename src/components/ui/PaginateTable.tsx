@@ -35,14 +35,22 @@ export interface PaginateTableProps<T> {
   tableClassName?: string;
   maxHeight?: string;
   minHeight?: string;
+
+  // Server-side pagination controls (optional)
+  page?: number;
+  pageSize?: number;
+  totalItems?: number;
+  totalPages?: number;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
 }
 
 export function PaginateTable<T>({
   data,
   columns,
   keyExtractor,
-  defaultPageSize = 5,
-  pageSizeOptions = [5, 10, 20, 50],
+  defaultPageSize = 20,
+  pageSizeOptions = [10, 20, 50, 100],
   showPagination = true,
   showPageSizeSelector = true,
   emptyMessage = "No records found",
@@ -56,23 +64,60 @@ export function PaginateTable<T>({
   tableClassName,
   maxHeight,
   minHeight,
+  page,
+  pageSize: propPageSize,
+  totalItems: propTotalItems,
+  totalPages: propTotalPages,
+  onPageChange,
+  onPageSizeChange,
 }: PaginateTableProps<T>) {
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(defaultPageSize);
+  const isServerPaginated = typeof onPageChange === "function";
 
-  // Reset to page 1 whenever total data length changes significantly
+  const [localPage, setLocalPage] = useState(1);
+  const [localPageSize, setLocalPageSize] = useState(defaultPageSize);
+
+  // Reset local page when data length changes significantly in client-side mode
   useEffect(() => {
-    setCurrentPage(1);
-  }, [data.length]);
+    if (!isServerPaginated) {
+      setLocalPage(1);
+    }
+  }, [data.length, isServerPaginated]);
 
-  const totalItems = data.length;
-  const totalPages = Math.ceil(totalItems / pageSize) || 1;
+  const activePage = isServerPaginated ? (page ?? 1) : localPage;
+  const activePageSize = isServerPaginated
+    ? (propPageSize ?? defaultPageSize)
+    : localPageSize;
+  const activeTotalItems = isServerPaginated
+    ? (propTotalItems ?? data.length)
+    : data.length;
+  const activeTotalPages = isServerPaginated
+    ? (propTotalPages ?? (Math.ceil(activeTotalItems / activePageSize) || 1))
+    : (Math.ceil(activeTotalItems / activePageSize) || 1);
 
-  // Safe slice for paginated data
-  const startIndex = (currentPage - 1) * pageSize;
-  const paginatedData = showPagination
-    ? data.slice(startIndex, startIndex + pageSize)
+  // If server paginated, data is already sliced for the current page; otherwise slice client-side
+  const startIndex = (activePage - 1) * activePageSize;
+  const paginatedData = isServerPaginated
+    ? data
+    : showPagination
+    ? data.slice(startIndex, startIndex + activePageSize)
     : data;
+
+  const handlePageChange = (newPage: number) => {
+    if (isServerPaginated && onPageChange) {
+      onPageChange(newPage);
+    } else {
+      setLocalPage(newPage);
+    }
+  };
+
+  const handlePageSizeChange = (newSize: number) => {
+    if (isServerPaginated && onPageSizeChange) {
+      onPageSizeChange(newSize);
+    } else {
+      setLocalPageSize(newSize);
+      setLocalPage(1);
+    }
+  };
 
   const alignClasses = {
     left: "text-left",
@@ -188,17 +233,14 @@ export function PaginateTable<T>({
       </div>
 
       {/* 4. Optional Pagination Footer */}
-      {showPagination && totalItems > 0 && (
+      {showPagination && activeTotalItems > 0 && (
         <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          pageSize={pageSize}
-          totalItems={totalItems}
-          onPageChange={setCurrentPage}
-          onPageSizeChange={(newSize) => {
-            setPageSize(newSize);
-            setCurrentPage(1);
-          }}
+          currentPage={activePage}
+          totalPages={activeTotalPages}
+          pageSize={activePageSize}
+          totalItems={activeTotalItems}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
           pageSizeOptions={pageSizeOptions}
           showPageSizeSelector={showPageSizeSelector}
         />

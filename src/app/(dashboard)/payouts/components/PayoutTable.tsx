@@ -191,7 +191,7 @@ export const PayoutTable: React.FC = () => {
         data={filteredPayouts}
         columns={columns}
         keyExtractor={(p) => p.id}
-        defaultPageSize={10}
+        defaultPageSize={20}
         className="flex-1 min-h-0"
         headerContent={
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

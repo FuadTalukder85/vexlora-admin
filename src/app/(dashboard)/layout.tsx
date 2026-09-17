@@ -18,13 +18,37 @@ export default function DashboardLayout({
     user,
     isAuthenticated,
     isInitialChecking,
+    fetchProfile,
   } = useAdminStore();
 
   useEffect(() => {
-    if (!isInitialChecking && !isAuthenticated) {
-      router.push("/login");
+    fetchProfile();
+  }, [fetchProfile]);
+
+  useEffect(() => {
+    if (!isInitialChecking) {
+      const isAuthorized =
+        isAuthenticated &&
+        user &&
+        (user.role === "ADMIN" || user.role === "SUPER_ADMIN") &&
+        user.status !== "BLOCKED";
+
+      if (!isAuthorized) {
+        router.replace("/login");
+      }
     }
-  }, [isInitialChecking, isAuthenticated, router]);
+  }, [isInitialChecking, isAuthenticated, user, router]);
+
+  // Prevent any protected route UI from rendering before auth is verified
+  if (
+    isInitialChecking ||
+    !isAuthenticated ||
+    !user ||
+    (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") ||
+    user.status === "BLOCKED"
+  ) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex">

@@ -12,14 +12,22 @@ export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login, isAuthenticated, isInitialChecking, user } = useAdminStore();
+  const { login, fetchProfile, isAuthenticated, isInitialChecking, user } = useAdminStore();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isInitialChecking && isAuthenticated && user) {
-      router.push("/");
+    fetchProfile();
+  }, [fetchProfile]);
+
+  useEffect(() => {
+    if (!isInitialChecking && isAuthenticated && user && (user.role === "ADMIN" || user.role === "SUPER_ADMIN")) {
+      router.replace("/");
     }
   }, [isAuthenticated, isInitialChecking, user, router]);
+
+  if (isInitialChecking || (isAuthenticated && user && (user.role === "ADMIN" || user.role === "SUPER_ADMIN"))) {
+    return null;
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +41,7 @@ export default function AdminLoginPage() {
     try {
       const res = await login(email, password);
       toast.success(`Welcome back, ${res.user.name || "Administrator"}!`);
-      router.push("/");
+      router.replace("/");
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Authentication failed. Invalid credentials.";

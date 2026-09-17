@@ -23,7 +23,7 @@ export const Pagination: React.FC<PaginationProps> = ({
   totalItems,
   onPageChange,
   onPageSizeChange,
-  pageSizeOptions = [5, 10, 20, 50],
+  pageSizeOptions = [10, 20, 50, 100],
   showPageSizeSelector = true,
   className,
 }) => {
@@ -64,9 +64,9 @@ export const Pagination: React.FC<PaginationProps> = ({
     >
       <div className="flex items-center gap-4 text-secondary font-medium">
         <span>
-          Showing <strong className="text-primary">{startItem}</strong> to{" "}
-          <strong className="text-primary">{endItem}</strong> of{" "}
-          <strong className="text-primary">{totalItems}</strong> entries
+          Showing <strong className="text-primary">{startItem.toLocaleString()}</strong> to{" "}
+          <strong className="text-primary">{endItem.toLocaleString()}</strong> of{" "}
+          <strong className="text-primary">{totalItems.toLocaleString()}</strong> entries
         </span>
 
         {showPageSizeSelector && onPageSizeChange && (
