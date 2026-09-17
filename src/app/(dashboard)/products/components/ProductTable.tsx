@@ -159,8 +159,8 @@ export const ProductTable: React.FC = () => {
             p.stock === 0
               ? "font-bold text-rose-600"
               : p.stock < 15
-              ? "font-semibold text-amber-600"
-              : "font-semibold text-primary"
+                ? "font-semibold text-amber-600"
+                : "font-semibold text-primary"
           }
         >
           {p.stock} units
@@ -222,17 +222,21 @@ export const ProductTable: React.FC = () => {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             {/* Status Tabs */}
             <div className="border-b border-slate-200/80 pb-2 flex items-center gap-6 overflow-x-auto">
-              {["ALL", "ACTIVE", "OUT_OF_STOCK", "BLOCKED"].map((tab) => (
+              {[
+                { key: "ALL", label: "All Products" },
+                { key: "ACTIVE", label: "Active" },
+                { key: "OUT_OF_STOCK", label: "Out of Stock" },
+                { key: "BLOCKED", label: "Blocked" },
+              ].map(({ key, label }) => (
                 <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`text-xs font-bold transition-all border-b-2 pb-1.5 whitespace-nowrap cursor-pointer ${
-                    activeTab === tab
-                      ? "border-primary text-primary"
-                      : "border-transparent text-slate-500 hover:text-slate-800"
-                  }`}
+                  key={key}
+                  onClick={() => setActiveTab(key)}
+                  className={`text-xs font-bold transition-all border-b-2 pb-1.5 whitespace-nowrap cursor-pointer ${activeTab === key
+                    ? "border-primary text-primary"
+                    : "border-transparent text-slate-500 hover:text-slate-800"
+                    }`}
                 >
-                  {tab === "ALL" ? "All Products" : tab.replace(/_/g, " ")}
+                  {label}
                 </button>
               ))}
             </div>

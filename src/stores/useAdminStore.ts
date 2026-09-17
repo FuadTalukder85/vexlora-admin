@@ -38,29 +38,45 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   fetchProfile: async () => {
     set({ isLoading: true, error: null });
     try {
+      let token: string | null = null;
       if (typeof window !== "undefined") {
-        const token =
-          localStorage.getItem("vexlora_admin_token") ||
-          localStorage.getItem("vexlora_token") ||
-          localStorage.getItem("admin_token");
+        token = localStorage.getItem("vexlora_admin_token");
         if (token) {
           apiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
         }
       }
 
-      const res = await apiClient.get("/users/me");
+      // If no admin token exists in localStorage or document.cookie, fail fast
+      const hasAdminCookie =
+        typeof document !== "undefined" &&
+        document.cookie.includes("vexlora_admin_token");
+
+      if (!token && !hasAdminCookie) {
+        set({
+          user: null,
+          token: null,
+          isAuthenticated: false,
+          isInitialChecking: false,
+          isLoading: false,
+        });
+        return null;
+      }
+
+      const res = await apiClient.get("/users/me", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       const userData = res.data?.data || res.data?.user || res.data;
 
       if (!userData || !userData.id) {
         throw new Error("Unable to retrieve user profile.");
       }
 
-      // Strict Admin Role Enforcement from Database
+      // Strict Admin Role Enforcement: only ADMIN or SUPER_ADMIN
       const role = userData.role;
       const isAdmin = role === "ADMIN" || role === "SUPER_ADMIN";
 
       if (!isAdmin) {
-        throw new Error("Access denied. Admin or Super Admin role is required.");
+        throw new Error("Access denied. Admin role required.");
       }
 
       const userObj: User = {
@@ -75,11 +91,11 @@ export const useAdminStore = create<AdminState>((set, get) => ({
 
       if (typeof window !== "undefined") {
         localStorage.setItem("vexlora_admin_user", JSON.stringify(userObj));
-        localStorage.setItem("admin_user", JSON.stringify(userObj));
       }
 
       set({
         user: userObj,
+        token: token || null,
         isAuthenticated: true,
         isInitialChecking: false,
         isLoading: false,
@@ -87,12 +103,13 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       });
 
       return userObj;
-    } catch (err: unknown) {
+    } catch {
       if (typeof window !== "undefined") {
         localStorage.removeItem("vexlora_admin_token");
         localStorage.removeItem("vexlora_admin_user");
-        localStorage.removeItem("admin_token");
-        localStorage.removeItem("admin_user");
+      }
+      if (typeof document !== "undefined") {
+        document.cookie = "vexlora_admin_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax";
       }
       delete apiClient.defaults.headers.common["Authorization"];
 
@@ -110,11 +127,9 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   login: async (email, password) => {
     set({ isLoading: true, error: null });
     try {
-      // 1. Real authentication request to Better-Auth backend
       const res = await axios.post(
         `${AUTH_BASE_URL}/sign-in/email`,
-        { email, password },
-        { withCredentials: true }
+        { email, password }
       );
 
       const token =
@@ -125,12 +140,15 @@ export const useAdminStore = create<AdminState>((set, get) => ({
 
       if (token && typeof window !== "undefined") {
         localStorage.setItem("vexlora_admin_token", token);
-        localStorage.setItem("vexlora_token", token);
-        localStorage.setItem("admin_token", token);
         apiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
       }
 
-      // 2. Fetch authenticated profile from database & verify admin role
+      if (typeof document !== "undefined") {
+        const cookieVal = token || "authenticated";
+        document.cookie = `vexlora_admin_token=${cookieVal}; path=/; max-age=86400; SameSite=Lax`;
+      }
+
+      // Verify profile & admin role
       const user = await get().fetchProfile();
 
       if (!user) {
@@ -146,7 +164,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         );
       }
 
-      set({ isLoading: false, error: null, token });
+      set({ isLoading: false, error: null, token: token || null });
       return { user, token: token || "" };
     } catch (err: unknown) {
       set({ isLoading: false });
@@ -164,22 +182,20 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   logout: async () => {
     set({ isLoading: true });
     try {
-      await axios.post(`${AUTH_BASE_URL}/sign-out`, {}, { withCredentials: true }).catch(() => {});
-    } catch {
-      // continue cleanup
-    } finally {
       if (typeof window !== "undefined") {
         localStorage.removeItem("vexlora_admin_token");
         localStorage.removeItem("vexlora_admin_user");
-        localStorage.removeItem("admin_token");
-        localStorage.removeItem("admin_user");
-        localStorage.removeItem("vexlora_token");
+      }
+      if (typeof document !== "undefined") {
+        document.cookie = "vexlora_admin_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax";
       }
       delete apiClient.defaults.headers.common["Authorization"];
+    } finally {
       set({
         user: null,
         token: null,
         isAuthenticated: false,
+        isInitialChecking: false,
         isLoading: false,
         error: null,
       });
@@ -188,11 +204,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
 
   initAuth: async () => {
     if (typeof window !== "undefined") {
-      const token =
-        localStorage.getItem("vexlora_admin_token") ||
-        localStorage.getItem("vexlora_token") ||
-        localStorage.getItem("admin_token");
-
+      const token = localStorage.getItem("vexlora_admin_token");
       if (token) {
         apiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
         await get().fetchProfile();
