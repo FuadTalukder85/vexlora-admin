@@ -150,7 +150,7 @@ export const FraudTable: React.FC = () => {
         data={filteredLogs}
         columns={columns}
         keyExtractor={(l) => l.id}
-        defaultPageSize={10}
+        defaultPageSize={20}
         className="flex-1 min-h-0"
         headerContent={
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

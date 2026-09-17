@@ -7,6 +7,8 @@ import {
   Trash2,
   Percent,
   Search,
+  FolderTree,
+  Package,
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -17,96 +19,51 @@ import { TableActions, TableActionButton } from "@/components/ui/TableActions";
 import { formatDate } from "@/lib/utils";
 import { Category } from "@/types/category";
 import { CategoriesSkeleton } from "./CategoriesSkeleton";
+import {
+  useAdminCategories,
+  useCategoryTree,
+  useCreateCategory,
+  useUpdateCategory,
+  useDeleteCategory,
+} from "@/hooks/useAdminCategories";
 import { toast } from "sonner";
 
-const initialCategories: Category[] = [
-  {
-    id: "cat-1",
-    name: "Consumer Electronics",
-    slug: "consumer-electronics",
-    description: "Smartphones, audio, smart home devices, and computing peripherals",
-    commissionRate: 8.5,
-    parentId: null,
-    productCount: 342,
-    isActive: true,
-    createdAt: "2026-01-15T00:00:00Z",
-    updatedAt: "2026-09-10T00:00:00Z",
-  },
-  {
-    id: "cat-2",
-    name: "Computer Peripherals & Audio",
-    slug: "peripherals-audio",
-    description: "Mechanical keyboards, gaming mice, studio monitors, DACs",
-    commissionRate: 10.0,
-    parentId: "cat-1",
-    productCount: 184,
-    isActive: true,
-    createdAt: "2026-01-20T00:00:00Z",
-    updatedAt: "2026-09-12T00:00:00Z",
-  },
-  {
-    id: "cat-3",
-    name: "Home & Ergonomic Furniture",
-    slug: "home-furniture",
-    description: "Standing desks, ergonomic chairs, studio organizers",
-    commissionRate: 12.0,
-    parentId: null,
-    productCount: 128,
-    isActive: true,
-    createdAt: "2026-02-01T00:00:00Z",
-    updatedAt: "2026-08-25T00:00:00Z",
-  },
-  {
-    id: "cat-4",
-    name: "Apparel & Streetwear",
-    slug: "apparel-streetwear",
-    description: "Designer hoodies, jackets, accessories, and shoes",
-    commissionRate: 15.0,
-    parentId: null,
-    productCount: 295,
-    isActive: true,
-    createdAt: "2026-02-15T00:00:00Z",
-    updatedAt: "2026-09-01T00:00:00Z",
-  },
-  {
-    id: "cat-5",
-    name: "Health & Wearables",
-    slug: "health-wearables",
-    description: "Fitness trackers, smartwatches, and wellness monitors",
-    commissionRate: 9.0,
-    parentId: "cat-1",
-    productCount: 76,
-    isActive: true,
-    createdAt: "2026-03-05T00:00:00Z",
-    updatedAt: "2026-09-14T00:00:00Z",
-  },
-  {
-    id: "cat-6",
-    name: "Photography & Video Gear",
-    slug: "photo-video",
-    description: "Lenses, lighting kits, gimbal stabilizers, and mics",
-    commissionRate: 11.5,
-    parentId: "cat-1",
-    productCount: 63,
-    isActive: false,
-    createdAt: "2026-03-20T00:00:00Z",
-    updatedAt: "2026-09-15T00:00:00Z",
-  },
-];
-
 export const CategoryTable: React.FC = () => {
-  const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+
+  // Queries & Mutations with server pagination
+  const { data, isLoading, isError, error, refetch } = useAdminCategories({
+    page,
+    limit: pageSize,
+    searchTerm: searchTerm.trim() || undefined,
+  });
+
+  // Query category tree for parent selection and accurate taxonomy hierarchy stats
+  const { data: categoryTree } = useCategoryTree();
+
+  const createCategoryMutation = useCreateCategory();
+  const updateCategoryMutation = useUpdateCategory();
+  const deleteCategoryMutation = useDeleteCategory();
+
+  const categories = data?.categories || [];
+  const meta = data?.meta;
+
+  const handleSearchChange = (val: string) => {
+    setSearchTerm(val);
+    setPage(1);
+  };
 
   // Form State
   const [formData, setFormData] = useState({
     name: "",
     slug: "",
     description: "",
-    commissionRate: 10.0,
+    image: "",
+    commissionOverride: 10.0,
     parentId: "",
     isActive: true,
   });
@@ -118,9 +75,13 @@ export const CategoryTable: React.FC = () => {
         name: category.name,
         slug: category.slug,
         description: category.description || "",
-        commissionRate: category.commissionRate,
+        image: category.image || "",
+        commissionOverride:
+          category.commissionOverride !== null && category.commissionOverride !== undefined
+            ? Number(category.commissionOverride)
+            : category.commissionRate ?? 10.0,
         parentId: category.parentId || "",
-        isActive: category.isActive,
+        isActive: category.isActive ?? true,
       });
     } else {
       setEditingCategory(null);
@@ -128,7 +89,8 @@ export const CategoryTable: React.FC = () => {
         name: "",
         slug: "",
         description: "",
-        commissionRate: 10.0,
+        image: "",
+        commissionOverride: 10.0,
         parentId: "",
         isActive: true,
       });
@@ -136,70 +98,110 @@ export const CategoryTable: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name) {
+    if (!formData.name.trim()) {
       toast.error("Category name is required");
       return;
     }
 
-    const slug = formData.slug || formData.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    const slug =
+      formData.slug.trim() ||
+      formData.name
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
 
-    if (editingCategory) {
-      setCategories((prev) =>
-        prev.map((c) =>
-          c.id === editingCategory.id
-            ? {
-                ...c,
-                ...formData,
-                slug,
-                updatedAt: new Date().toISOString(),
-              }
-            : c
-        )
-      );
-      toast.success(`Category "${formData.name}" updated successfully!`);
-    } else {
-      const newCategory: Category = {
-        id: `cat-${Date.now()}`,
-        ...formData,
-        slug,
-        productCount: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      setCategories((prev) => [newCategory, ...prev]);
-      toast.success(`Category "${formData.name}" created successfully!`);
+    const payload = {
+      name: formData.name.trim(),
+      slug,
+      parentId: formData.parentId ? formData.parentId : null,
+      image: formData.image.trim() || null,
+      commissionOverride:
+        formData.commissionOverride !== null && formData.commissionOverride !== undefined
+          ? Number(formData.commissionOverride)
+          : null,
+      isActive: formData.isActive,
+    };
+
+    try {
+      if (editingCategory) {
+        await updateCategoryMutation.mutateAsync({
+          id: editingCategory.id,
+          payload,
+        });
+        toast.success(`Category "${formData.name}" updated successfully!`);
+      } else {
+        await createCategoryMutation.mutateAsync(payload);
+        toast.success(`Category "${formData.name}" created successfully!`);
+      }
+      setIsModalOpen(false);
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "An error occurred while saving the category.";
+      toast.error(msg);
     }
-
-    setIsModalOpen(false);
   };
 
-  const handleDelete = (category: Category) => {
-    if (confirm(`Are you sure you want to delete category "${category.name}"?`)) {
-      setCategories((prev) => prev.filter((c) => c.id !== category.id));
-      toast.success(`Category "${category.name}" removed.`);
+  const handleDelete = async (category: Category) => {
+    if (
+      !confirm(
+        `Are you sure you want to delete category "${category.name}"? Sub-categories will be gracefully re-linked to their parent.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await deleteCategoryMutation.mutateAsync(category.id);
+      toast.success(`Category "${category.name}" deleted successfully.`);
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to delete category.";
+      toast.error(msg);
     }
   };
 
-  const filteredCategories = categories.filter(
-    (c) =>
-      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.slug.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (c.description && c.description.toLowerCase().includes(searchTerm.toLowerCase()))
+  const isSubmitting =
+    createCategoryMutation.isPending || updateCategoryMutation.isPending;
+
+  // KPI Calculations
+  const totalCategories = meta?.total ?? categories.length;
+  const treeList = categoryTree || [];
+  const rootCategoriesCount = treeList.length > 0 ? treeList.length : categories.filter((c) => !c.parentId).length;
+  const subCategoriesCount = totalCategories > rootCategoriesCount ? totalCategories - rootCategoriesCount : 0;
+
+  const avgCommission =
+    categories.length > 0
+      ? (
+          categories.reduce((acc, c) => acc + (c.commissionRate ?? 10), 0) /
+          categories.length
+        ).toFixed(1)
+      : "10.0";
+
+  const totalProducts = categories.reduce(
+    (acc, c) => acc + (c.productCount ?? 0),
+    0
   );
 
   const columns: ColumnDef<Category>[] = [
     {
       header: "SL",
       cell: (_, idx) => (
-        <span className="font-semibold text-slate-500 text-xs">{idx + 1}</span>
+        <span className="font-semibold text-slate-500 text-xs">
+          {(page - 1) * pageSize + idx + 1}
+        </span>
       ),
     },
     {
       header: "Category Name",
       cell: (c) => {
-        const parent = categories.find((p) => p.id === c.parentId);
+        const parent = categories.find((p) => p.id === c.parentId) || c.parent;
         return (
           <div>
             <div className="flex items-center gap-1.5">
@@ -210,28 +212,38 @@ export const CategoryTable: React.FC = () => {
                 </span>
               )}
             </div>
-            <p className="text-[11px] text-secondary line-clamp-1">{c.description}</p>
+            {c.description && (
+              <p className="text-[11px] text-secondary line-clamp-1">
+                {c.description}
+              </p>
+            )}
           </div>
         );
       },
     },
     {
       header: "Slug",
-      cell: (c) => <span className="font-mono text-xs text-primary font-medium">{c.slug}</span>,
+      cell: (c) => (
+        <span className="font-mono text-xs text-primary font-medium">
+          {c.slug}
+        </span>
+      ),
     },
     {
       header: "Commission Rate",
       cell: (c) => (
         <span className="font-bold text-highlight flex items-center gap-0.5">
           <Percent className="w-3.5 h-3.5" />
-          {c.commissionRate}%
+          {c.commissionRate ?? c.commissionOverride ?? 10}%
         </span>
       ),
     },
     {
       header: "Catalog Products",
       cell: (c) => (
-        <span className="font-semibold text-primary">{c.productCount || 0} products</span>
+        <span className="font-semibold text-primary">
+          {c.productCount || 0} products
+        </span>
       ),
     },
     {
@@ -245,7 +257,11 @@ export const CategoryTable: React.FC = () => {
     },
     {
       header: "Updated",
-      cell: (c) => <span className="text-primary">{formatDate(c.updatedAt)}</span>,
+      cell: (c) => (
+        <span className="text-primary text-xs">
+          {c.updatedAt ? formatDate(c.updatedAt) : "—"}
+        </span>
+      ),
     },
     {
       header: "Actions",
@@ -262,6 +278,7 @@ export const CategoryTable: React.FC = () => {
             onClick={() => handleDelete(c)}
             hoverVariant="danger"
             title="Delete Category"
+            disabled={deleteCategoryMutation.isPending}
           >
             <Trash2 className="w-4 h-4" />
           </TableActionButton>
@@ -270,8 +287,24 @@ export const CategoryTable: React.FC = () => {
     },
   ];
 
-  if (isLoading) {
+  if (isLoading && categories.length === 0) {
     return <CategoriesSkeleton />;
+  }
+
+  if (isError) {
+    return (
+      <div className="p-8 text-center bg-white rounded-2xl border border-rose-100 shadow-xs space-y-3">
+        <p className="text-rose-600 font-bold text-sm">
+          Failed to load category taxonomy.
+        </p>
+        <p className="text-xs text-slate-500">
+          {(error as any)?.message || "Please check your network and API connection."}
+        </p>
+        <Button variant="outline" size="sm" onClick={() => refetch()}>
+          Retry Loading
+        </Button>
+      </div>
+    );
   }
 
   return (
@@ -279,29 +312,46 @@ export const CategoryTable: React.FC = () => {
       {/* 1. Taxonomy KPI Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-2">
-          <span className="text-[11px] font-bold text-secondary uppercase tracking-wider block">
-            Total Categories
-          </span>
-          <h2 className="text-3xl font-black text-primary">{categories.length}</h2>
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-secondary uppercase tracking-wider block">
+              Total Categories
+            </span>
+            <FolderTree className="w-4 h-4 text-slate-400" />
+          </div>
+          <h2 className="text-3xl font-black text-primary">
+            {totalCategories.toLocaleString()}
+          </h2>
           <p className="text-[11px] text-secondary">
-            {categories.filter((c) => !c.parentId).length} Root Taxonomies • {categories.filter((c) => c.parentId).length} Sub-categories
+            {rootCategoriesCount} Root Taxonomies • {subCategoriesCount} Sub-categories
           </p>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-2">
-          <span className="text-[11px] font-bold text-secondary uppercase tracking-wider block">
-            Avg Platform Commission
-          </span>
-          <h2 className="text-3xl font-black text-highlight">11.0%</h2>
-          <p className="text-[11px] text-secondary">Ranges from 8.5% to 15.0% across verticals</p>
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-secondary uppercase tracking-wider block">
+              Avg Platform Commission
+            </span>
+            <Percent className="w-4 h-4 text-highlight" />
+          </div>
+          <h2 className="text-3xl font-black text-highlight">{avgCommission}%</h2>
+          <p className="text-[11px] text-secondary">
+            Global standard & category overrides
+          </p>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-2">
-          <span className="text-[11px] font-bold text-secondary uppercase tracking-wider block">
-            Categorized Products
-          </span>
-          <h2 className="text-3xl font-black text-emerald-600">1,088</h2>
-          <p className="text-[11px] text-secondary">Assigned across active vendor listings</p>
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-secondary uppercase tracking-wider block">
+              Categorized Products
+            </span>
+            <Package className="w-4 h-4 text-emerald-600" />
+          </div>
+          <h2 className="text-3xl font-black text-emerald-600">
+            {totalProducts.toLocaleString()}
+          </h2>
+          <p className="text-[11px] text-secondary">
+            Assigned across active vendor listings
+          </p>
         </div>
       </div>
 
@@ -314,22 +364,36 @@ export const CategoryTable: React.FC = () => {
             <div className="flex items-center justify-between gap-4">
               <div className="max-w-md w-full">
                 <Input
-                  placeholder="Search category name, slug, or description..."
+                  placeholder="Search category name, slug..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   leftIcon={<Search className="w-4 h-4" />}
                 />
               </div>
-              <Button variant="primary" size="sm" onClick={() => handleOpenModal()}>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => handleOpenModal()}
+              >
                 <Plus className="w-4 h-4" />
                 Create Category
               </Button>
             </div>
           }
-          data={filteredCategories}
+          data={categories}
           columns={columns}
           keyExtractor={(c) => c.id}
-          defaultPageSize={10}
+          page={page}
+          pageSize={pageSize}
+          totalItems={meta?.total ?? categories.length}
+          totalPages={meta?.totalPages ?? 1}
+          onPageChange={(newPage) => setPage(newPage)}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setPage(1);
+          }}
+          pageSizeOptions={[10, 20, 50, 100]}
+          defaultPageSize={20}
         />
       </div>
 
@@ -352,7 +416,11 @@ export const CategoryTable: React.FC = () => {
                   name,
                   slug: editingCategory
                     ? formData.slug
-                    : name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+                    : name
+                        .toLowerCase()
+                        .trim()
+                        .replace(/[^a-z0-9]+/g, "-")
+                        .replace(/^-+|-+$/g, ""),
                 });
               }}
               placeholder="e.g. Mechanical Keyboards"
@@ -362,7 +430,9 @@ export const CategoryTable: React.FC = () => {
             <Input
               label="Slug (URL identifier) *"
               value={formData.slug}
-              onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, slug: e.target.value })
+              }
               placeholder="e.g. mechanical-keyboards"
               required
             />
@@ -375,12 +445,18 @@ export const CategoryTable: React.FC = () => {
               </label>
               <select
                 value={formData.parentId}
-                onChange={(e) => setFormData({ ...formData, parentId: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, parentId: e.target.value })
+                }
                 className="w-full h-10 rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-primary focus:border-primary focus:outline-none"
               >
-                <option value="">None (Top-Level Category)</option>
-                {categories
-                  .filter((c) => !editingCategory || c.id !== editingCategory.id)
+                <option value="">None (Top-Level Root Category)</option>
+                {(treeList.length > 0 ? treeList : categories)
+                  .filter(
+                    (c) =>
+                      !editingCategory ||
+                      (c.id !== editingCategory.id && c.parentId !== editingCategory.id)
+                  )
                   .map((cat) => (
                     <option key={cat.id} value={cat.id}>
                       {cat.name}
@@ -390,42 +466,44 @@ export const CategoryTable: React.FC = () => {
             </div>
 
             <Input
-              label="Commission Rate (%) *"
+              label="Commission Override (%) *"
               type="number"
               step="0.1"
               min="0"
               max="100"
-              value={formData.commissionRate}
+              value={formData.commissionOverride}
               onChange={(e) =>
-                setFormData({ ...formData, commissionRate: parseFloat(e.target.value) || 0 })
+                setFormData({
+                  ...formData,
+                  commissionOverride: parseFloat(e.target.value) || 0,
+                })
               }
               placeholder="10.0"
               required
             />
           </div>
 
-          <div className="space-y-1.5">
-            <label className="block text-sm font-semibold text-primary">
-              Description
-            </label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Brief summary of items in this category"
-              rows={3}
-              className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-primary focus:border-primary focus:outline-none"
-            />
-          </div>
+          <Input
+            label="Image URL (Optional)"
+            type="url"
+            value={formData.image}
+            onChange={(e) =>
+              setFormData({ ...formData, image: e.target.value })
+            }
+            placeholder="https://images.unsplash.com/..."
+          />
 
           <div className="flex items-center gap-3 pt-2">
             <label className="flex items-center gap-2 text-xs font-semibold text-primary cursor-pointer">
               <input
                 type="checkbox"
                 checked={formData.isActive}
-                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                onChange={(e) =>
+                  setFormData({ ...formData, isActive: e.target.checked })
+                }
                 className="w-4 h-4 rounded text-primary focus:ring-primary"
               />
-              Category is active and visible in catalog
+              Category is active and visible in marketplace catalog
             </label>
           </div>
 
@@ -435,11 +513,21 @@ export const CategoryTable: React.FC = () => {
               variant="outline"
               size="sm"
               onClick={() => setIsModalOpen(false)}
+              disabled={isSubmitting}
             >
               Cancel
             </Button>
-            <Button type="submit" variant="primary" size="sm">
-              {editingCategory ? "Save Changes" : "Create Category"}
+            <Button
+              type="submit"
+              variant="primary"
+              size="sm"
+              disabled={isSubmitting}
+            >
+              {isSubmitting
+                ? "Saving..."
+                : editingCategory
+                ? "Save Changes"
+                : "Create Category"}
             </Button>
           </div>
         </form>

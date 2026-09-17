@@ -198,7 +198,7 @@ export const OrderTable: React.FC = () => {
         data={filteredOrders}
         columns={columns}
         keyExtractor={(o) => o.id}
-        defaultPageSize={10}
+        defaultPageSize={20}
         className="flex-1 min-h-0"
         headerContent={
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
