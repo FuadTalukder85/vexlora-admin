@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { Search, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { PaginateTable } from "@/components/ui/PaginateTable";
 import { Product, ProductStatus } from "@/types/product";
@@ -17,13 +17,14 @@ import { toast } from "sonner";
 
 export const ProductTable: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>("ALL");
+  const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   // Queries & Mutations with server pagination
-  const { data, isLoading, isError, error, refetch } = useAdminProducts({
+  const { data, isLoading, isFetching, isError, error, refetch } = useAdminProducts({
     page,
     limit: pageSize,
     searchTerm: searchTerm.trim() || undefined,
@@ -41,8 +42,14 @@ export const ProductTable: React.FC = () => {
     setPage(1);
   };
 
-  const handleSearchChange = (val: string) => {
-    setSearchTerm(val);
+  const handleSearchSubmit = () => {
+    setSearchTerm(searchInput);
+    setPage(1);
+  };
+
+  const handleClearSearch = () => {
+    setSearchInput("");
+    setSearchTerm("");
     setPage(1);
   };
 
@@ -199,14 +206,39 @@ export const ProductTable: React.FC = () => {
 
             {/* Search Input */}
             <div className="relative w-full max-w-md">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                value={searchTerm}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder="Search product title, vendor store, or brand..."
-                className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary transition-all"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSearchSubmit();
+                }}
+                placeholder="Search product title or brand… Press Enter"
+                className="w-full pl-4 pr-10 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary transition-all"
               />
+              <button
+                type="button"
+                onClick={
+                  Boolean(searchTerm.trim()) && !isFetching
+                    ? handleClearSearch
+                    : handleSearchSubmit
+                }
+                disabled={isFetching}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors cursor-pointer disabled:cursor-default"
+                aria-label={
+                  Boolean(searchTerm.trim()) && !isFetching
+                    ? "Clear search"
+                    : "Search products"
+                }
+              >
+                {isFetching && searchTerm.trim() ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                ) : searchTerm.trim() ? (
+                  <X className="w-4 h-4 text-slate-400 hover:text-slate-700 transition-colors" />
+                ) : (
+                  <Search className="w-4 h-4" />
+                )}
+              </button>
             </div>
           </div>
         }

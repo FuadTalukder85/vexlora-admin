@@ -310,7 +310,7 @@ export const CategoryTable: React.FC = () => {
   return (
     <div className="flex-1 flex flex-col min-h-0 w-full space-y-4">
       {/* 1. Taxonomy KPI Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 shrink-0">
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-secondary uppercase tracking-wider block">
@@ -356,46 +356,45 @@ export const CategoryTable: React.FC = () => {
       </div>
 
       {/* 2. Search & Paginated Table */}
-      <div className="flex-1 flex flex-col min-h-0">
-        <PaginateTable
-          title="All Categories"
-          subtitle="Manage and organize marketplace category hierarchies"
-          headerContent={
-            <div className="flex items-center justify-between gap-4">
-              <div className="max-w-md w-full">
-                <Input
-                  placeholder="Search category name, slug..."
-                  value={searchTerm}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  leftIcon={<Search className="w-4 h-4" />}
-                />
-              </div>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => handleOpenModal()}
-              >
-                <Plus className="w-4 h-4" />
-                Create Category
-              </Button>
+      <PaginateTable
+        title="All Categories"
+        subtitle="Manage and organize marketplace category hierarchies"
+        className="flex-1 min-h-0"
+        headerContent={
+          <div className="flex items-center justify-between gap-4">
+            <div className="max-w-md w-full">
+              <Input
+                placeholder="Search category name, slug..."
+                value={searchTerm}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                leftIcon={<Search className="w-4 h-4" />}
+              />
             </div>
-          }
-          data={categories}
-          columns={columns}
-          keyExtractor={(c) => c.id}
-          page={page}
-          pageSize={pageSize}
-          totalItems={meta?.total ?? categories.length}
-          totalPages={meta?.totalPages ?? 1}
-          onPageChange={(newPage) => setPage(newPage)}
-          onPageSizeChange={(newSize) => {
-            setPageSize(newSize);
-            setPage(1);
-          }}
-          pageSizeOptions={[10, 20, 50, 100]}
-          defaultPageSize={20}
-        />
-      </div>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => handleOpenModal()}
+            >
+              <Plus className="w-4 h-4" />
+              Create Category
+            </Button>
+          </div>
+        }
+        data={categories}
+        columns={columns}
+        keyExtractor={(c) => c.id}
+        page={page}
+        pageSize={pageSize}
+        totalItems={meta?.total ?? categories.length}
+        totalPages={meta?.totalPages ?? 1}
+        onPageChange={(newPage) => setPage(newPage)}
+        onPageSizeChange={(newSize) => {
+          setPageSize(newSize);
+          setPage(1);
+        }}
+        pageSizeOptions={[10, 20, 50, 100]}
+        defaultPageSize={20}
+      />
 
       {/* 3. Category Creation / Edit Modal */}
       <Modal
