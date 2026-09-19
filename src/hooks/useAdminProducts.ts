@@ -97,8 +97,8 @@ export const useAdminProducts = (params?: AdminProductQueryParams) => {
   useEffect(() => {
     if (!totalPages || query.isLoading) return;
 
-    // Prefetch next 3 pages in advance
-    const PREFETCH_PAGES_AHEAD = 3;
+    // Prefetch next page in advance
+    const PREFETCH_PAGES_AHEAD = 1;
     for (let offset = 1; offset <= PREFETCH_PAGES_AHEAD; offset++) {
       const targetPage = currentPage + offset;
       if (targetPage <= totalPages) {
