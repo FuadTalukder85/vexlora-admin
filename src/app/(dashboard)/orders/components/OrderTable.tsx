@@ -10,115 +10,37 @@ import { TableActions, TableActionButton } from "@/components/ui/TableActions";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { AdminOrder } from "@/types/order";
 import { OrdersSkeleton } from "./OrdersSkeleton";
-
-const mockOrders: AdminOrder[] = [
-  {
-    id: "ord-1",
-    orderNumber: "ORD-9021",
-    customerName: "Sarah Jenkins",
-    customerEmail: "sarah.j@example.com",
-    vendorName: "Apex Gaming Gear",
-    items: [
-      {
-        id: "i-1",
-        productId: "p-101",
-        productName: "Pro Wireless Mechanical Gaming Keyboard",
-        quantity: 1,
-        unitPrice: 149.99,
-        totalPrice: 149.99,
-      },
-    ],
-    subtotal: 149.99,
-    tax: 12.0,
-    shipping: 10.0,
-    discount: 0,
-    total: 171.99,
-    commissionTotal: 12.75,
-    status: "CONFIRMED",
-    paymentStatus: "PAID",
-    paymentMethod: "Stripe Card (**** 4242)",
-    createdAt: "2026-09-17T10:00:00Z",
-    updatedAt: "2026-09-17T10:00:00Z",
-  },
-  {
-    id: "ord-2",
-    orderNumber: "ORD-9020",
-    customerName: "David Miller",
-    customerEmail: "david.m@example.com",
-    vendorName: "Nordic Living Co.",
-    items: [
-      {
-        id: "i-2",
-        productId: "p-102",
-        productName: "Ergonomic Walnut Desk Riser",
-        quantity: 1,
-        unitPrice: 220.0,
-        totalPrice: 220.0,
-      },
-    ],
-    subtotal: 220.0,
-    tax: 17.6,
-    shipping: 15.0,
-    discount: 20.0,
-    total: 232.6,
-    commissionTotal: 26.4,
-    status: "PROCESSING",
-    paymentStatus: "PAID",
-    paymentMethod: "Apple Pay",
-    createdAt: "2026-09-16T16:30:00Z",
-    updatedAt: "2026-09-16T18:00:00Z",
-  },
-  {
-    id: "ord-3",
-    orderNumber: "ORD-9019",
-    customerName: "Emily Zhang",
-    customerEmail: "emily.z@example.com",
-    vendorName: "Silk & Canvas Apparel",
-    items: [
-      {
-        id: "i-3",
-        productId: "p-103",
-        productName: "Oversized Minimalist Jacket",
-        quantity: 2,
-        unitPrice: 180.0,
-        totalPrice: 360.0,
-      },
-    ],
-    subtotal: 360.0,
-    tax: 28.8,
-    shipping: 0,
-    discount: 0,
-    total: 388.8,
-    commissionTotal: 54.0,
-    status: "DELIVERED",
-    paymentStatus: "PAID",
-    paymentMethod: "PayPal",
-    createdAt: "2026-09-15T11:20:00Z",
-    updatedAt: "2026-09-17T08:30:00Z",
-  },
-];
+import { useAdminOrders } from "@/hooks/useAdminOrders";
 
 export const OrderTable: React.FC = () => {
-  const [orders] = useState<AdminOrder[]>(mockOrders);
   const [activeTab, setActiveTab] = useState<string>("ALL");
   const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
-  const [isLoading] = useState(false);
 
-  const filteredOrders = orders.filter((o) => {
-    const matchesSearch =
-      o.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      o.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      o.customerEmail.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesTab = activeTab === "ALL" || o.status === activeTab;
-    return matchesSearch && matchesTab;
+  const { data, isLoading } = useAdminOrders({
+    searchTerm,
+    paymentStatus: activeTab === "ALL" ? undefined : activeTab === "CONFIRMED" || activeTab === "PROCESSING" || activeTab === "DELIVERED" ? undefined : activeTab,
+    page,
+    limit: pageSize,
+  });
+
+  const rawOrders = data?.orders || [];
+  const meta = data?.meta;
+
+  const filteredOrders = rawOrders.filter((o) => {
+    if (activeTab === "ALL") return true;
+    return o.status === activeTab || o.paymentStatus === activeTab;
   });
 
   const columns: ColumnDef<AdminOrder>[] = [
     {
       header: "SL",
       cell: (_, idx) => (
-        <span className="font-semibold text-slate-500 text-xs">{idx + 1}</span>
+        <span className="font-semibold text-slate-500 text-xs">
+          {(page - 1) * pageSize + idx + 1}
+        </span>
       ),
     },
     {
@@ -126,7 +48,7 @@ export const OrderTable: React.FC = () => {
       cell: (o) => (
         <div>
           <span className="font-bold text-primary block">{o.orderNumber}</span>
-          <span className="text-[10px] text-secondary font-mono">{o.paymentMethod}</span>
+          <span className="text-[10px] text-secondary font-mono capitalize">{o.paymentMethod}</span>
         </div>
       ),
     },
@@ -164,6 +86,8 @@ export const OrderTable: React.FC = () => {
               ? "success"
               : o.status === "CONFIRMED"
               ? "primary"
+              : o.status === "CANCELLED"
+              ? "danger"
               : "neutral"
           }
         >
@@ -188,7 +112,7 @@ export const OrderTable: React.FC = () => {
     },
   ];
 
-  if (isLoading) {
+  if (isLoading && !data) {
     return <OrdersSkeleton />;
   }
 
@@ -198,7 +122,15 @@ export const OrderTable: React.FC = () => {
         data={filteredOrders}
         columns={columns}
         keyExtractor={(o) => o.id}
-        defaultPageSize={20}
+        page={page}
+        pageSize={pageSize}
+        totalItems={meta?.total ?? filteredOrders.length}
+        totalPages={meta?.totalPages ?? 1}
+        onPageChange={(p) => setPage(p)}
+        onPageSizeChange={(s) => {
+          setPageSize(s);
+          setPage(1);
+        }}
         className="flex-1 min-h-0"
         headerContent={
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -207,7 +139,10 @@ export const OrderTable: React.FC = () => {
               {["ALL", "CONFIRMED", "PROCESSING", "DELIVERED", "CANCELLED"].map((tab) => (
                 <button
                   key={tab}
-                  onClick={() => setActiveTab(tab)}
+                  onClick={() => {
+                    setActiveTab(tab);
+                    setPage(1);
+                  }}
                   className={`text-xs font-bold transition-all border-b-2 pb-1.5 whitespace-nowrap cursor-pointer ${
                     activeTab === tab
                       ? "border-primary text-primary"
@@ -225,7 +160,10 @@ export const OrderTable: React.FC = () => {
               <input
                 type="text"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setPage(1);
+                }}
                 placeholder="Search order number, customer name, email..."
                 className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary transition-all"
               />
@@ -244,14 +182,18 @@ export const OrderTable: React.FC = () => {
           <div className="space-y-4 text-xs">
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-2">
               <p className="font-bold text-primary">Items Ordered:</p>
-              {selectedOrder.items.map((item) => (
-                <div key={item.id} className="flex justify-between py-1 border-b border-slate-200/50">
-                  <span>
-                    {item.productName} (x{item.quantity})
-                  </span>
-                  <span className="font-bold text-primary">{formatCurrency(item.totalPrice)}</span>
-                </div>
-              ))}
+              {selectedOrder.items.length > 0 ? (
+                selectedOrder.items.map((item) => (
+                  <div key={item.id} className="flex justify-between py-1 border-b border-slate-200/50">
+                    <span>
+                      {item.productName} (x{item.quantity})
+                    </span>
+                    <span className="font-bold text-primary">{formatCurrency(item.totalPrice)}</span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-secondary">No items details found</p>
+              )}
             </div>
             <div className="flex justify-between p-3 bg-slate-50 rounded-xl">
               <span className="font-bold text-secondary">Total Commission Deducted</span>
@@ -270,3 +212,4 @@ export const OrderTable: React.FC = () => {
     </div>
   );
 };
+
