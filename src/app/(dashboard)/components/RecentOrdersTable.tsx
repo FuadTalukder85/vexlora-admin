@@ -9,121 +9,7 @@ import { PaginateTable, ColumnDef } from "@/components/ui/PaginateTable";
 import { TableActions, TableActionButton } from "@/components/ui/TableActions";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { AdminOrder } from "@/types/order";
-
-const mockRecentOrders: AdminOrder[] = [
-  {
-    id: "ord-101",
-    orderNumber: "ORD-9082",
-    customerName: "Alex Montgomery",
-    customerEmail: "alex.m@example.com",
-    vendorName: "Apex Gaming Gear",
-    items: [
-      {
-        id: "item-1",
-        productId: "p-1",
-        productName: "Pro Wireless Gaming Headset",
-        quantity: 1,
-        unitPrice: 199.99,
-        totalPrice: 199.99,
-      },
-    ],
-    subtotal: 199.99,
-    tax: 16.0,
-    shipping: 10.0,
-    discount: 0,
-    total: 225.99,
-    commissionTotal: 19.99,
-    status: "CONFIRMED",
-    paymentStatus: "PAID",
-    paymentMethod: "Credit Card (Stripe)",
-    createdAt: "2026-09-17T14:30:00Z",
-    updatedAt: "2026-09-17T14:30:00Z",
-  },
-  {
-    id: "ord-102",
-    orderNumber: "ORD-9081",
-    customerName: "Sophia Chen",
-    customerEmail: "sophia.c@example.com",
-    vendorName: "Nordic Living Co.",
-    items: [
-      {
-        id: "item-2",
-        productId: "p-2",
-        productName: "Solid Oak Minimalist Desk",
-        quantity: 1,
-        unitPrice: 450.0,
-        totalPrice: 450.0,
-      },
-    ],
-    subtotal: 450.0,
-    tax: 36.0,
-    shipping: 50.0,
-    discount: 25.0,
-    total: 511.0,
-    commissionTotal: 45.0,
-    status: "PROCESSING",
-    paymentStatus: "PAID",
-    paymentMethod: "Apple Pay",
-    createdAt: "2026-09-17T12:15:00Z",
-    updatedAt: "2026-09-17T12:15:00Z",
-  },
-  {
-    id: "ord-103",
-    orderNumber: "ORD-9080",
-    customerName: "Marcus Vance",
-    customerEmail: "marcus.v@example.com",
-    vendorName: "Aura Audio Labs",
-    items: [
-      {
-        id: "item-3",
-        productId: "p-3",
-        productName: "Studio Monitor Reference Speakers",
-        quantity: 2,
-        unitPrice: 299.0,
-        totalPrice: 598.0,
-      },
-    ],
-    subtotal: 598.0,
-    tax: 47.84,
-    shipping: 0,
-    discount: 50.0,
-    total: 595.84,
-    commissionTotal: 59.8,
-    status: "DELIVERED",
-    paymentStatus: "PAID",
-    paymentMethod: "PayPal",
-    createdAt: "2026-09-16T18:40:00Z",
-    updatedAt: "2026-09-17T09:00:00Z",
-  },
-  {
-    id: "ord-104",
-    orderNumber: "ORD-9079",
-    customerName: "Elena Rostova",
-    customerEmail: "elena.r@example.com",
-    vendorName: "Silk & Canvas Apparel",
-    items: [
-      {
-        id: "item-4",
-        productId: "p-4",
-        productName: "Merino Wool Trench Coat",
-        quantity: 1,
-        unitPrice: 320.0,
-        totalPrice: 320.0,
-      },
-    ],
-    subtotal: 320.0,
-    tax: 25.6,
-    shipping: 15.0,
-    discount: 0,
-    total: 360.6,
-    commissionTotal: 32.0,
-    status: "SHIPPED",
-    paymentStatus: "PAID",
-    paymentMethod: "Credit Card (Stripe)",
-    createdAt: "2026-09-16T15:20:00Z",
-    updatedAt: "2026-09-16T20:00:00Z",
-  },
-];
+import { useAdminOrders } from "@/hooks/useAdminOrders";
 
 const getStatusBadge = (status: AdminOrder["status"]) => {
   switch (status) {
@@ -143,6 +29,9 @@ const getStatusBadge = (status: AdminOrder["status"]) => {
 };
 
 export const RecentOrdersTable: React.FC = () => {
+  const { data } = useAdminOrders({ limit: 5 });
+  const orders = data?.orders || [];
+
   const columns: ColumnDef<AdminOrder>[] = [
     {
       header: "SL",
@@ -155,7 +44,7 @@ export const RecentOrdersTable: React.FC = () => {
       cell: (o) => (
         <div>
           <span className="font-bold text-primary">{o.orderNumber}</span>
-          <p className="text-[10px] text-secondary font-mono">{o.paymentMethod}</p>
+          <p className="text-[10px] text-secondary font-mono capitalize">{o.paymentMethod}</p>
         </div>
       ),
     },
@@ -209,7 +98,7 @@ export const RecentOrdersTable: React.FC = () => {
     <PaginateTable
       title="Live Marketplace Orders"
       subtitle="Recent customer purchases and commission deductions across all active vendors"
-      data={mockRecentOrders}
+      data={orders}
       columns={columns}
       keyExtractor={(o) => o.id}
       defaultPageSize={5}
@@ -223,3 +112,4 @@ export const RecentOrdersTable: React.FC = () => {
     />
   );
 };
+

@@ -12,6 +12,7 @@ export interface ColumnDef<T> {
   accessorKey?: keyof T;
   cell?: (row: T, index: number) => React.ReactNode;
   align?: "left" | "center" | "right";
+  sticky?: "left" | "right";
   className?: string;
   headerClassName?: string;
 }
@@ -164,24 +165,32 @@ export function PaginateTable<T>({
 
       {/* 3. Table Area with Fixed Header & Scrollable Body */}
       <div
-        className="overflow-x-auto w-full flex-1"
+        className="overflow-x-auto w-full flex-1 relative"
         style={{ maxHeight, minHeight }}
       >
         <table className={cn("w-full border-collapse text-left min-w-max", tableClassName)}>
-          <thead className="sticky top-0 z-10 bg-slate-50/90 backdrop-blur-xs border-b border-slate-100">
+          <thead className="sticky top-0 z-20 bg-slate-50 border-b border-slate-100">
             <tr>
-              {columns.map((col, index) => (
-                <th
-                  key={index}
-                  className={cn(
-                    "py-3.5 px-5 text-xs font-bold text-primary uppercase tracking-wider",
-                    headerAlignClasses[col.align || "left"],
-                    col.headerClassName
-                  )}
-                >
-                  {col.header}
-                </th>
-              ))}
+              {columns.map((col, index) => {
+                const isStickyRight =
+                  col.sticky === "right" ||
+                  (col.align === "right" && index === columns.length - 1);
+
+                return (
+                  <th
+                    key={index}
+                    className={cn(
+                      "py-3.5 px-5 text-xs font-bold text-primary uppercase tracking-wider",
+                      headerAlignClasses[col.align || "left"],
+                      isStickyRight &&
+                        "sticky right-0 z-30 bg-slate-50 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)] border-l border-slate-200/80",
+                      col.headerClassName
+                    )}
+                  >
+                    {col.header}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-sm text-primary">
@@ -191,7 +200,7 @@ export function PaginateTable<T>({
                   key={keyExtractor(row, rowIndex)}
                   onClick={() => onRowClick && onRowClick(row)}
                   className={cn(
-                    "hover:bg-slate-100 transition-colors",
+                    "group hover:bg-slate-100 transition-colors",
                     onRowClick && "cursor-pointer"
                   )}
                 >
@@ -203,12 +212,18 @@ export function PaginateTable<T>({
                       content = String(row[col.accessorKey] ?? "");
                     }
 
+                    const isStickyRight =
+                      col.sticky === "right" ||
+                      (col.align === "right" && colIndex === columns.length - 1);
+
                     return (
                       <td
                         key={colIndex}
                         className={cn(
                           "py-2.5 px-5",
                           alignClasses[col.align || "left"],
+                          isStickyRight &&
+                            "sticky right-0 z-10 bg-white group-hover:bg-slate-100 transition-colors shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)] border-l border-slate-100",
                           col.className
                         )}
                       >
