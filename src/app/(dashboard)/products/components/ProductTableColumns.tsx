@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import Image from "next/image";
 import { Eye, CheckCircle, Ban, Trash2, Package, Store } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
@@ -48,7 +48,7 @@ export const getProductTableColumns = ({
   {
     header: "SL",
     cell: (_, idx) => (
-      <span className="font-semibold text-slate-500 text-xs">
+      <span className="font-semibold text-secondary text-xs">
         {(page - 1) * pageSize + idx + 1}
       </span>
     ),
@@ -65,7 +65,7 @@ export const getProductTableColumns = ({
 
       return (
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden relative shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-muted border border-border overflow-hidden relative shrink-0">
             {firstImg ? (
               <Image
                 src={firstImg}
@@ -74,8 +74,8 @@ export const getProductTableColumns = ({
                 className="object-cover"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-slate-400 text-[10px]">
-                <Package className="w-4 h-4 text-slate-300" />
+              <div className="w-full h-full flex items-center justify-center text-secondary text-[10px]">
+                <Package className="w-4 h-4 text-secondary/60" />
               </div>
             )}
           </div>
@@ -84,7 +84,7 @@ export const getProductTableColumns = ({
               {p.name || p.title}
             </p>
             <p className="text-[11px] text-secondary font-medium flex items-center gap-1">
-              <Store className="w-3 h-3 text-slate-400" />
+              <Store className="w-3 h-3 text-secondary" />
               Sold by{" "}
               <strong className="text-primary">
                 {p.vendor?.storeName || "Unknown Vendor"}
@@ -128,7 +128,7 @@ export const getProductTableColumns = ({
         <span
           className={
             stockVal === 0
-              ? "font-bold text-rose-600 text-xs"
+              ? "font-bold text-highlight text-xs"
               : stockVal < 15
                 ? "font-semibold text-amber-600 text-xs"
                 : "font-semibold text-primary text-xs"
@@ -170,7 +170,7 @@ export const getProductTableColumns = ({
             title="Block / Moderate Product"
             disabled={isUpdatingStatus}
           >
-            <Ban className="w-4 h-4 text-rose-600" />
+            <Ban className="w-4 h-4 text-highlight" />
           </TableActionButton>
         )}
         <TableActionButton

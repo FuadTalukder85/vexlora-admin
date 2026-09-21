@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { Plus, Edit, Trash2, Search } from "lucide-react";
@@ -140,14 +140,14 @@ export const CouponTable: React.FC = () => {
     {
       header: "SL",
       cell: (_, idx) => (
-        <span className="font-semibold text-slate-500 text-xs">{idx + 1}</span>
+        <span className="font-semibold text-secondary text-xs">{idx + 1}</span>
       ),
     },
     {
       header: "Promo Code",
       cell: (c) => (
         <div>
-          <span className="font-mono font-bold text-highlight tracking-wider text-xs px-2 py-0.5 bg-rose-50 rounded border border-rose-200">
+          <span className="font-mono font-bold text-highlight tracking-wider text-xs px-2 py-0.5 bg-highlight/10 rounded border border-highlight/30">
             {c.code}
           </span>
           <p className="text-[11px] text-secondary mt-1">{c.description}</p>
@@ -221,7 +221,7 @@ export const CouponTable: React.FC = () => {
         headerContent={
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             {/* Status Tabs */}
-            <div className="border-b border-slate-200/80 pb-2 flex items-center gap-6 overflow-x-auto">
+            <div className="border-b border-border pb-2 flex items-center gap-6 overflow-x-auto">
               {["ALL", "ACTIVE", "EXPIRED"].map((tab) => (
                 <button
                   key={tab}
@@ -229,7 +229,7 @@ export const CouponTable: React.FC = () => {
                   className={`text-xs font-bold transition-all border-b-2 pb-1.5 whitespace-nowrap cursor-pointer ${
                     activeTab === tab
                       ? "border-primary text-primary"
-                      : "border-transparent text-slate-500 hover:text-slate-800"
+                      : "border-transparent text-secondary hover:text-primary"
                   }`}
                 >
                   {tab === "ALL" ? "All Coupons" : tab.charAt(0) + tab.slice(1).toLowerCase()}
@@ -240,13 +240,13 @@ export const CouponTable: React.FC = () => {
             {/* Right: Search & Create Button */}
             <div className="flex items-center gap-3 w-full sm:w-auto">
               <div className="relative w-full sm:w-64">
-                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-secondary" />
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search promo code..."
-                  className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary transition-all"
+                  className="w-full pl-10 pr-4 py-2 bg-white border border-border rounded-xl text-xs text-primary focus:outline-none focus:border-primary transition-all"
                 />
               </div>
               <Button variant="primary" size="sm" onClick={() => handleOpenModal()}>
@@ -293,7 +293,7 @@ export const CouponTable: React.FC = () => {
                 onChange={(e) => setFormData({ ...formData, minOrderAmount: Number(e.target.value) })}
               />
             </div>
-            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+            <div className="flex justify-end gap-2 pt-3 border-t border-border">
               <Button variant="outline" size="sm" type="button" onClick={() => setIsModalOpen(false)}>
                 Cancel
               </Button>

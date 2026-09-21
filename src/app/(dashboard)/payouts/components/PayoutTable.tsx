@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { CheckCircle2, XCircle, Eye, Search } from "lucide-react";
@@ -76,7 +76,7 @@ export const PayoutTable: React.FC = () => {
     {
       header: "SL",
       cell: (_, idx) => (
-        <span className="font-semibold text-slate-500 text-xs">{idx + 1}</span>
+        <span className="font-semibold text-secondary text-xs">{idx + 1}</span>
       ),
     },
     {
@@ -137,7 +137,7 @@ export const PayoutTable: React.FC = () => {
                 onClick={() => handleAction(p, "REJECTED")}
                 title="Reject Transfer"
               >
-                <XCircle className="w-4 h-4 text-rose-600" />
+                <XCircle className="w-4 h-4 text-highlight" />
               </TableActionButton>
             </>
           )}
@@ -162,7 +162,7 @@ export const PayoutTable: React.FC = () => {
     <div className="flex-1 flex flex-col min-h-0 w-full space-y-4">
       {/* Financial Overview Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-2">
+        <div className="bg-white p-5 rounded-2xl border border-border shadow-xs space-y-2">
           <span className="text-[11px] font-bold text-secondary uppercase tracking-wider block">
             Pending Escrow Queue
           </span>
@@ -170,7 +170,7 @@ export const PayoutTable: React.FC = () => {
           <p className="text-[11px] text-secondary">Awaiting Admin Wire Confirmation</p>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-2">
+        <div className="bg-white p-5 rounded-2xl border border-border shadow-xs space-y-2">
           <span className="text-[11px] font-bold text-secondary uppercase tracking-wider block">
             Cleared Disbursements (MTD)
           </span>
@@ -178,7 +178,7 @@ export const PayoutTable: React.FC = () => {
           <p className="text-[11px] text-secondary">Settled to vendor accounts</p>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-2">
+        <div className="bg-white p-5 rounded-2xl border border-border shadow-xs space-y-2">
           <span className="text-[11px] font-bold text-secondary uppercase tracking-wider block">
             Total Retained Commission
           </span>
@@ -196,7 +196,7 @@ export const PayoutTable: React.FC = () => {
         headerContent={
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             {/* Status Tabs */}
-            <div className="border-b border-slate-200/80 pb-2 flex items-center gap-6 overflow-x-auto">
+            <div className="border-b border-border pb-2 flex items-center gap-6 overflow-x-auto">
               {["ALL", "PENDING", "PAID", "REJECTED"].map((tab) => (
                 <button
                   key={tab}
@@ -204,7 +204,7 @@ export const PayoutTable: React.FC = () => {
                   className={`text-xs font-bold transition-all border-b-2 pb-1.5 whitespace-nowrap cursor-pointer ${
                     activeTab === tab
                       ? "border-primary text-primary"
-                      : "border-transparent text-slate-500 hover:text-slate-800"
+                      : "border-transparent text-secondary hover:text-primary"
                   }`}
                 >
                   {tab === "ALL" ? "All Payouts" : tab.charAt(0) + tab.slice(1).toLowerCase()}
@@ -214,13 +214,13 @@ export const PayoutTable: React.FC = () => {
 
             {/* Search Input */}
             <div className="relative w-full max-w-md">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-secondary" />
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search vendor or bank..."
-                className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary transition-all"
+                className="w-full pl-10 pr-4 py-2 bg-white border border-border rounded-xl text-xs text-primary focus:outline-none focus:border-primary transition-all"
               />
             </div>
           </div>

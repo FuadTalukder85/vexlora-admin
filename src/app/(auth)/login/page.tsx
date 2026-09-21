@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -53,7 +53,7 @@ export default function AdminLoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-900 via-primary to-slate-950">
-      <div className="w-full max-w-md bg-white rounded-3xl p-8 shadow-2xl border border-slate-200/80 space-y-6">
+      <div className="w-full max-w-md bg-white rounded-3xl p-8 shadow-2xl border border-border space-y-6">
         <div className="text-center space-y-2">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-highlight to-rose-400 text-white flex items-center justify-center mx-auto shadow-lg shadow-rose-900/30">
             <Shield className="w-7 h-7" />

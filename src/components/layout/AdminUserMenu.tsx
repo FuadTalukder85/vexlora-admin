@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import Link from "next/link";
@@ -12,7 +12,7 @@ export const AdminUserMenu: React.FC = () => {
   if (!user) {
     return (
       <div className="flex items-center gap-2.5 p-1.5">
-        <div className="w-9 h-9 rounded-full bg-slate-200 animate-pulse" />
+        <div className="w-9 h-9 rounded-full bg-muted animate-pulse" />
       </div>
     );
   }
@@ -21,9 +21,9 @@ export const AdminUserMenu: React.FC = () => {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-slate-100 transition-colors focus:outline-none cursor-pointer"
+        className="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-muted transition-colors focus:outline-none cursor-pointer"
       >
-        <div className="w-9 h-9 rounded-full bg-slate-200 overflow-hidden relative border border-slate-300">
+        <div className="w-9 h-9 rounded-full bg-muted overflow-hidden relative border border-border">
           <div className="w-full h-full flex items-center justify-center bg-primary text-white font-bold text-sm">
             {user.name ? user.name.charAt(0).toUpperCase() : "A"}
           </div>
@@ -38,8 +38,8 @@ export const AdminUserMenu: React.FC = () => {
       {isOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-lg border border-slate-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-            <div className="px-4 py-2 border-b border-slate-100">
+          <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-lg border border-border py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+            <div className="px-4 py-2 border-b border-border">
               <p className="text-xs font-bold text-primary">{user.name}</p>
               <p className="text-[11px] text-secondary truncate font-mono">{user.role}</p>
             </div>
@@ -48,7 +48,7 @@ export const AdminUserMenu: React.FC = () => {
               <Link
                 href="/settings"
                 onClick={() => setIsOpen(false)}
-                className="flex items-center gap-2.5 px-4 py-2 text-xs text-primary hover:bg-slate-50 font-medium"
+                className="flex items-center gap-2.5 px-4 py-2 text-xs text-primary hover:bg-muted font-medium"
               >
                 <Settings className="w-4 h-4 text-secondary" />
                 Platform Settings
@@ -56,7 +56,7 @@ export const AdminUserMenu: React.FC = () => {
               <Link
                 href="/users"
                 onClick={() => setIsOpen(false)}
-                className="flex items-center gap-2.5 px-4 py-2 text-xs text-primary hover:bg-slate-50 font-medium"
+                className="flex items-center gap-2.5 px-4 py-2 text-xs text-primary hover:bg-muted font-medium"
               >
                 <Shield className="w-4 h-4 text-secondary" />
                 RBAC & Staff Roles
@@ -65,14 +65,14 @@ export const AdminUserMenu: React.FC = () => {
                 href="http://localhost:3000"
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-2.5 px-4 py-2 text-xs text-primary hover:bg-slate-50 font-medium"
+                className="flex items-center gap-2.5 px-4 py-2 text-xs text-primary hover:bg-muted font-medium"
               >
                 <ExternalLink className="w-4 h-4 text-secondary" />
                 View Main Marketplace
               </a>
             </div>
 
-            <div className="pt-1 border-t border-slate-100">
+            <div className="pt-1 border-t border-border">
               <button
                 onClick={() => {
                   setIsOpen(false);
@@ -81,9 +81,9 @@ export const AdminUserMenu: React.FC = () => {
                     window.location.href = "/login";
                   }
                 }}
-                className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-rose-600 hover:bg-rose-50 font-medium text-left cursor-pointer"
+                className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-highlight hover:bg-highlight/10 font-medium text-left cursor-pointer"
               >
-                <LogOut className="w-4 h-4 text-rose-500" />
+                <LogOut className="w-4 h-4 text-highlight" />
                 Sign Out
               </button>
             </div>

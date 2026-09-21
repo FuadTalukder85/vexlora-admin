@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import Link from "next/link";
@@ -36,7 +36,7 @@ export const RecentOrdersTable: React.FC = () => {
     {
       header: "SL",
       cell: (_, idx) => (
-        <span className="font-semibold text-slate-500 text-xs">{idx + 1}</span>
+        <span className="font-semibold text-secondary text-xs">{idx + 1}</span>
       ),
     },
     {
