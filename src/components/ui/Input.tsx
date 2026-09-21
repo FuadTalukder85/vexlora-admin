@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { cn } from "@/lib/utils";
 
 export interface InputProps
@@ -34,10 +34,10 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             id={inputId}
             ref={ref}
             className={cn(
-              "w-full h-10 rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-primary placeholder:text-secondary transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-75",
+              "w-full h-10 rounded-xl border border-border bg-white px-3.5 text-sm text-primary placeholder:text-secondary transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10 disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-75",
               leftIcon && "pl-10",
               rightIcon && "pr-10",
-              error && "border-rose-500 focus:border-rose-500 focus:ring-rose-500/10",
+              error && "border-highlight focus:border-highlight focus:ring-rose-500/10",
               className
             )}
             {...props}
@@ -49,7 +49,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           )}
         </div>
         {error ? (
-          <p className="text-xs text-rose-500 font-medium">{error}</p>
+          <p className="text-xs text-highlight font-medium">{error}</p>
         ) : helperText ? (
           <p className="text-xs text-secondary font-medium">{helperText}</p>
         ) : null}

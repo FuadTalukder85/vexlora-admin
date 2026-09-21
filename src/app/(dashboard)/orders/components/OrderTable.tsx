@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { Search, Eye } from "lucide-react";
@@ -38,7 +38,7 @@ export const OrderTable: React.FC = () => {
     {
       header: "SL",
       cell: (_, idx) => (
-        <span className="font-semibold text-slate-500 text-xs">
+        <span className="font-semibold text-secondary text-xs">
           {(page - 1) * pageSize + idx + 1}
         </span>
       ),
@@ -135,7 +135,7 @@ export const OrderTable: React.FC = () => {
         headerContent={
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             {/* Status Tabs */}
-            <div className="border-b border-slate-200/80 pb-2 flex items-center gap-6 overflow-x-auto">
+            <div className="border-b border-border pb-2 flex items-center gap-6 overflow-x-auto">
               {["ALL", "CONFIRMED", "PROCESSING", "DELIVERED", "CANCELLED"].map((tab) => (
                 <button
                   key={tab}
@@ -146,7 +146,7 @@ export const OrderTable: React.FC = () => {
                   className={`text-xs font-bold transition-all border-b-2 pb-1.5 whitespace-nowrap cursor-pointer ${
                     activeTab === tab
                       ? "border-primary text-primary"
-                      : "border-transparent text-slate-500 hover:text-slate-800"
+                      : "border-transparent text-secondary hover:text-primary"
                   }`}
                 >
                   {tab === "ALL" ? "All Orders" : tab.charAt(0) + tab.slice(1).toLowerCase()}
@@ -156,7 +156,7 @@ export const OrderTable: React.FC = () => {
 
             {/* Search Input */}
             <div className="relative w-full max-w-md">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-secondary" />
               <input
                 type="text"
                 value={searchTerm}
@@ -165,7 +165,7 @@ export const OrderTable: React.FC = () => {
                   setPage(1);
                 }}
                 placeholder="Search order number, customer name, email..."
-                className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary transition-all"
+                className="w-full pl-10 pr-4 py-2 bg-white border border-border rounded-xl text-xs text-primary focus:outline-none focus:border-primary transition-all"
               />
             </div>
           </div>
@@ -180,11 +180,11 @@ export const OrderTable: React.FC = () => {
           maxWidth="lg"
         >
           <div className="space-y-4 text-xs">
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-2">
+            <div className="p-4 rounded-xl bg-muted border border-border space-y-2">
               <p className="font-bold text-primary">Items Ordered:</p>
               {selectedOrder.items.length > 0 ? (
                 selectedOrder.items.map((item) => (
-                  <div key={item.id} className="flex justify-between py-1 border-b border-slate-200/50">
+                  <div key={item.id} className="flex justify-between py-1 border-b border-border/50">
                     <span>
                       {item.productName} (x{item.quantity})
                     </span>
@@ -195,13 +195,13 @@ export const OrderTable: React.FC = () => {
                 <p className="text-secondary">No items details found</p>
               )}
             </div>
-            <div className="flex justify-between p-3 bg-slate-50 rounded-xl">
+            <div className="flex justify-between p-3 bg-muted rounded-xl">
               <span className="font-bold text-secondary">Total Commission Deducted</span>
               <span className="font-bold text-emerald-600 text-sm">
                 {formatCurrency(selectedOrder.commissionTotal)}
               </span>
             </div>
-            <div className="flex justify-end pt-3 border-t border-slate-100">
+            <div className="flex justify-end pt-3 border-t border-border">
               <Button variant="outline" size="sm" onClick={() => setSelectedOrder(null)}>
                 Close
               </Button>

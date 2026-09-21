@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { UserCheck, UserX, Edit, Search } from "lucide-react";
@@ -74,7 +74,7 @@ export const UserTable: React.FC = () => {
     {
       header: "SL",
       cell: (_, idx) => (
-        <span className="font-semibold text-slate-500 text-xs">{idx + 1}</span>
+        <span className="font-semibold text-secondary text-xs">{idx + 1}</span>
       ),
     },
     {
@@ -137,7 +137,7 @@ export const UserTable: React.FC = () => {
               onClick={() => handleToggleBlock(u)}
               title="Block User"
             >
-              <UserX className="w-4 h-4 text-rose-600" />
+              <UserX className="w-4 h-4 text-highlight" />
             </TableActionButton>
           )}
         </TableActions>
@@ -160,7 +160,7 @@ export const UserTable: React.FC = () => {
         headerContent={
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             {/* Status Tabs */}
-            <div className="border-b border-slate-200/80 pb-2 flex items-center gap-6 overflow-x-auto">
+            <div className="border-b border-border pb-2 flex items-center gap-6 overflow-x-auto">
               {["ALL", "ADMIN", "VENDOR", "CUSTOMER", "BLOCKED"].map((tab) => (
                 <button
                   key={tab}
@@ -168,7 +168,7 @@ export const UserTable: React.FC = () => {
                   className={`text-xs font-bold transition-all border-b-2 pb-1.5 whitespace-nowrap cursor-pointer ${
                     activeTab === tab
                       ? "border-primary text-primary"
-                      : "border-transparent text-slate-500 hover:text-slate-800"
+                      : "border-transparent text-secondary hover:text-primary"
                   }`}
                 >
                   {tab === "ALL" ? "All Users" : tab.charAt(0) + tab.slice(1).toLowerCase()}
@@ -178,13 +178,13 @@ export const UserTable: React.FC = () => {
 
             {/* Search Input */}
             <div className="relative w-full max-w-md">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-secondary" />
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search user name or email..."
-                className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary transition-all"
+                className="w-full pl-10 pr-4 py-2 bg-white border border-border rounded-xl text-xs text-primary focus:outline-none focus:border-primary transition-all"
               />
             </div>
           </div>
