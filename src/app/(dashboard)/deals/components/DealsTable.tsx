@@ -23,6 +23,7 @@ import { TableActions, TableActionButton } from "@/components/ui/TableActions";
 import { AdminReviewDealModal, DealRequestItem } from "./AdminReviewDealModal";
 import { AdminDirectDealModal } from "./AdminDirectDealModal";
 import { DealsSkeleton } from "./DealsSkeleton";
+import { getAdminSocket } from "@/lib/socket";
 import { toast } from "sonner";
 
 export interface DealItem {
@@ -63,8 +64,8 @@ export const DealsTable: React.FC = () => {
   const [isDirectModalOpen, setIsDirectModalOpen] = useState(false);
   const [allProducts, setAllProducts] = useState<Array<{ id: string; title: string; basePrice: number; vendor?: { storeName: string } }>>([]);
 
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
+  const fetchData = useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const [reqRes, dealsRes] = await Promise.all([
         apiClient.get("/deals/requests/admin?limit=100"),
@@ -78,15 +79,41 @@ export const DealsTable: React.FC = () => {
         setDeals(dealsRes.data.data);
       }
     } catch (err: unknown) {
-      console.error("Failed to load admin deals data:", err);
-      toast.error("Failed to load deals data");
+      if (!silent) {
+        console.error("Failed to load admin deals data:", err);
+        toast.error("Failed to load deals data");
+      }
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
     fetchData();
+
+    // 1. Connect to WebSocket & join admin room
+    const socket = getAdminSocket();
+
+    const handleNewDealRequest = (payload: any) => {
+      fetchData(true);
+      toast.info(payload.message || "New vendor deal request submitted!", {
+        duration: 4000,
+      });
+    };
+
+    const handleDealUpdated = () => {
+      fetchData(true);
+    };
+
+    socket.on("DEAL_REQUEST_CREATED", handleNewDealRequest);
+    socket.on("DEAL_REQUEST_REVIEWED", handleDealUpdated);
+    socket.on("DEAL_UPDATED", handleDealUpdated);
+
+    return () => {
+      socket.off("DEAL_REQUEST_CREATED", handleNewDealRequest);
+      socket.off("DEAL_REQUEST_REVIEWED", handleDealUpdated);
+      socket.off("DEAL_UPDATED", handleDealUpdated);
+    };
   }, [fetchData]);
 
   const handleOpenDirectModal = async () => {
