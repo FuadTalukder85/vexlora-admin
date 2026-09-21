@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -58,7 +58,7 @@ export const Pagination: React.FC<PaginationProps> = ({
   return (
     <div
       className={cn(
-        "px-5 py-3.5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs bg-slate-50/50",
+        "px-5 py-3.5 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs bg-muted/50",
         className
       )}
     >
@@ -70,12 +70,12 @@ export const Pagination: React.FC<PaginationProps> = ({
         </span>
 
         {showPageSizeSelector && onPageSizeChange && (
-          <div className="flex items-center gap-1.5 border-l border-slate-200 pl-4">
+          <div className="flex items-center gap-1.5 border-l border-border pl-4">
             <span className="text-secondary">Rows per page:</span>
             <select
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
-              className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-primary font-semibold focus:outline-none focus:border-primary cursor-pointer"
+              className="bg-white border border-border rounded-lg px-2 py-1 text-primary font-semibold focus:outline-none focus:border-primary cursor-pointer"
             >
               {pageSizeOptions.map((option) => (
                 <option key={option} value={option}>
@@ -91,7 +91,7 @@ export const Pagination: React.FC<PaginationProps> = ({
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="p-1.5 rounded-lg border border-slate-200 bg-white text-primary hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+          className="p-1.5 rounded-lg border border-border bg-white text-primary hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
           aria-label="Previous Page"
         >
           <ChevronLeft className="w-4 h-4" />
@@ -106,7 +106,7 @@ export const Pagination: React.FC<PaginationProps> = ({
                 "w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer",
                 currentPage === page
                   ? "bg-primary text-white shadow-xs"
-                  : "bg-white border border-slate-200 text-primary hover:bg-slate-100"
+                  : "bg-white border border-border text-primary hover:bg-muted"
               )}
             >
               {page}
@@ -121,7 +121,7 @@ export const Pagination: React.FC<PaginationProps> = ({
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages || totalPages === 0}
-          className="p-1.5 rounded-lg border border-slate-200 bg-white text-primary hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+          className="p-1.5 rounded-lg border border-border bg-white text-primary hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
           aria-label="Next Page"
         >
           <ChevronRight className="w-4 h-4" />
