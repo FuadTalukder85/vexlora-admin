@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { cn } from "@/lib/utils";
 
 export interface TableActionsProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -61,8 +61,8 @@ export const TableActionButton = React.forwardRef<
       default: "",
       emerald: "hover:text-emerald-600 hover:bg-emerald-50!",
       amber: "hover:text-amber-600 hover:bg-amber-50!",
-      danger: "hover:text-rose-600 hover:bg-rose-50!",
-      primary: "hover:text-primary hover:bg-slate-200!",
+      danger: "hover:text-highlight hover:bg-highlight/10!",
+      primary: "hover:text-primary hover:bg-muted!",
     };
 
     const componentProps = Component === "button" ? { type, ...props } : props;

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useMemo, useState } from "react";
 import { Search, Loader2, X } from "lucide-react";
@@ -147,10 +147,10 @@ export const ProductTable: React.FC = () => {
   if (isError) {
     return (
       <div className="p-8 text-center bg-white rounded-2xl border border-rose-100 shadow-xs space-y-3">
-        <p className="text-rose-600 font-bold text-sm">
+        <p className="text-highlight font-bold text-sm">
           Failed to load marketplace products.
         </p>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-secondary">
           {(error as any)?.message || "Please check your network and API connection."}
         </p>
         <Button variant="outline" size="sm" onClick={() => refetch()}>
@@ -181,7 +181,7 @@ export const ProductTable: React.FC = () => {
         headerContent={
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             {/* Status Tabs */}
-            <div className="border-b border-slate-200/80 pb-2 flex items-center gap-6 overflow-x-auto">
+            <div className="border-b border-border pb-2 flex items-center gap-6 overflow-x-auto">
               {[
                 { key: "ALL", label: "All Products" },
                 { key: "ACTIVE", label: "Active" },
@@ -196,7 +196,7 @@ export const ProductTable: React.FC = () => {
                   className={`text-xs font-bold transition-all border-b-2 pb-1.5 whitespace-nowrap cursor-pointer ${
                     activeTab === key
                       ? "border-primary text-primary"
-                      : "border-transparent text-slate-500 hover:text-slate-800"
+                      : "border-transparent text-secondary hover:text-primary"
                   }`}
                 >
                   {label}
@@ -214,7 +214,7 @@ export const ProductTable: React.FC = () => {
                   if (e.key === "Enter") handleSearchSubmit();
                 }}
                 placeholder="Search product title or brand… Press Enter"
-                className="w-full pl-4 pr-10 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary transition-all"
+                className="w-full pl-4 pr-10 py-2 bg-white border border-border rounded-xl text-xs text-primary focus:outline-none focus:border-primary transition-all"
               />
               <button
                 type="button"
@@ -224,7 +224,7 @@ export const ProductTable: React.FC = () => {
                     : handleSearchSubmit
                 }
                 disabled={isFetching}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors cursor-pointer disabled:cursor-default"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary hover:text-primary transition-colors cursor-pointer disabled:cursor-default"
                 aria-label={
                   Boolean(searchTerm.trim()) && !isFetching
                     ? "Clear search"
@@ -234,7 +234,7 @@ export const ProductTable: React.FC = () => {
                 {isFetching && searchTerm.trim() ? (
                   <Loader2 className="w-4 h-4 animate-spin text-primary" />
                 ) : searchTerm.trim() ? (
-                  <X className="w-4 h-4 text-slate-400 hover:text-slate-700 transition-colors" />
+                  <X className="w-4 h-4 text-secondary hover:text-secondary transition-colors" />
                 ) : (
                   <Search className="w-4 h-4" />
                 )}

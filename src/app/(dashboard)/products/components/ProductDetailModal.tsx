@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import Image from "next/image";
 import { Star, Trash2 } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
@@ -46,7 +46,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               return (
                 <div
                   key={idx}
-                  className="w-20 h-20 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden relative shrink-0"
+                  className="w-20 h-20 rounded-xl bg-muted border border-border overflow-hidden relative shrink-0"
                 >
                   <Image
                     src={url}
@@ -61,7 +61,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
         )}
 
         {/* Vendor & Category Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl bg-slate-50 border border-slate-100">
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl bg-muted border border-border">
           <div>
             <p className="text-[10px] text-secondary font-bold uppercase">
               Vendor & Store
@@ -94,7 +94,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
         {/* Pricing & Stock Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="p-3 bg-slate-50 rounded-xl">
+          <div className="p-3 bg-muted rounded-xl">
             <p className="text-secondary font-bold uppercase text-[10px]">
               Base Price
             </p>
@@ -103,7 +103,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             </p>
           </div>
 
-          <div className="p-3 bg-slate-50 rounded-xl">
+          <div className="p-3 bg-muted rounded-xl">
             <p className="text-secondary font-bold uppercase text-[10px]">
               Discount Price
             </p>
@@ -114,7 +114,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             </p>
           </div>
 
-          <div className="p-3 bg-slate-50 rounded-xl">
+          <div className="p-3 bg-muted rounded-xl">
             <p className="text-secondary font-bold uppercase text-[10px]">
               Total Stock
             </p>
@@ -123,14 +123,14 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             </p>
           </div>
 
-          <div className="p-3 bg-slate-50 rounded-xl">
+          <div className="p-3 bg-muted rounded-xl">
             <p className="text-secondary font-bold uppercase text-[10px]">
               Rating / Reviews
             </p>
             <p className="text-primary font-black text-sm flex items-center gap-1">
               <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
               {product.ratingAvg ? Number(product.ratingAvg).toFixed(1) : "0.0"}
-              <span className="text-[10px] text-slate-400 font-normal">
+              <span className="text-[10px] text-secondary font-normal">
                 ({product.ratingCount ?? 0})
               </span>
             </p>
@@ -138,7 +138,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
         </div>
 
         {/* Description */}
-        <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-1.5">
+        <div className="p-4 rounded-xl bg-muted border border-border space-y-1.5">
           <p className="text-secondary font-bold uppercase text-[10px]">
             Product Description
           </p>
@@ -157,9 +157,9 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               {product.variants.map((v) => (
                 <div
                   key={v.id}
-                  className="p-2.5 rounded-lg border border-slate-200 bg-white flex items-center justify-between text-xs"
+                  className="p-2.5 rounded-lg border border-border bg-white flex items-center justify-between text-xs"
                 >
-                  <span className="font-mono font-medium text-slate-700">
+                  <span className="font-mono font-medium text-secondary">
                     {v.sku}
                   </span>
                   <span className="font-bold text-primary">
@@ -172,7 +172,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
         )}
 
         {/* Quick Status Moderation */}
-        <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between">
+        <div className="p-3.5 rounded-xl border border-border bg-muted flex items-center justify-between">
           <div>
             <p className="font-bold text-primary">Admin Status Moderation</p>
             <p className="text-[11px] text-secondary">
@@ -208,11 +208,11 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex justify-between items-center pt-3 border-t border-slate-100">
+        <div className="flex justify-between items-center pt-3 border-t border-border">
           <Button
             variant="outline"
             size="sm"
-            className="text-rose-600 hover:bg-rose-50"
+            className="text-highlight hover:bg-highlight/10"
             onClick={() => onDelete(product)}
             disabled={isDeleting}
           >

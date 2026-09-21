@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import { AlertCircle, RefreshCw } from "lucide-react";
@@ -12,8 +12,8 @@ export default function Error({
   reset: () => void;
 }) {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-50 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mb-4 border border-rose-100 shadow-sm">
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-muted text-center">
+      <div className="w-16 h-16 rounded-2xl bg-highlight/10 text-highlight flex items-center justify-center mb-4 border border-rose-100 shadow-sm">
         <AlertCircle className="w-8 h-8" />
       </div>
       <h2 className="text-xl font-bold text-primary tracking-tight">Something went wrong</h2>

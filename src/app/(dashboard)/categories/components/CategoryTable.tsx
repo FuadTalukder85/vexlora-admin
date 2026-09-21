@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import {
@@ -193,7 +193,7 @@ export const CategoryTable: React.FC = () => {
     {
       header: "SL",
       cell: (_, idx) => (
-        <span className="font-semibold text-slate-500 text-xs">
+        <span className="font-semibold text-secondary text-xs">
           {(page - 1) * pageSize + idx + 1}
         </span>
       ),
@@ -207,7 +207,7 @@ export const CategoryTable: React.FC = () => {
             <div className="flex items-center gap-1.5">
               <span className="font-bold text-primary">{c.name}</span>
               {c.parentId && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-secondary font-medium">
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-secondary font-medium">
                   Sub-category of {parent?.name || "Parent"}
                 </span>
               )}
@@ -294,10 +294,10 @@ export const CategoryTable: React.FC = () => {
   if (isError) {
     return (
       <div className="p-8 text-center bg-white rounded-2xl border border-rose-100 shadow-xs space-y-3">
-        <p className="text-rose-600 font-bold text-sm">
+        <p className="text-highlight font-bold text-sm">
           Failed to load category taxonomy.
         </p>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-secondary">
           {(error as any)?.message || "Please check your network and API connection."}
         </p>
         <Button variant="outline" size="sm" onClick={() => refetch()}>
@@ -311,12 +311,12 @@ export const CategoryTable: React.FC = () => {
     <div className="flex-1 flex flex-col min-h-0 w-full space-y-4">
       {/* 1. Taxonomy KPI Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 shrink-0">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-2">
+        <div className="bg-white p-5 rounded-2xl border border-border shadow-xs space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-secondary uppercase tracking-wider block">
               Total Categories
             </span>
-            <FolderTree className="w-4 h-4 text-slate-400" />
+            <FolderTree className="w-4 h-4 text-secondary" />
           </div>
           <h2 className="text-3xl font-black text-primary">
             {totalCategories.toLocaleString()}
@@ -326,7 +326,7 @@ export const CategoryTable: React.FC = () => {
           </p>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-2">
+        <div className="bg-white p-5 rounded-2xl border border-border shadow-xs space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-secondary uppercase tracking-wider block">
               Avg Platform Commission
@@ -339,7 +339,7 @@ export const CategoryTable: React.FC = () => {
           </p>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-2">
+        <div className="bg-white p-5 rounded-2xl border border-border shadow-xs space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-secondary uppercase tracking-wider block">
               Categorized Products
@@ -447,7 +447,7 @@ export const CategoryTable: React.FC = () => {
                 onChange={(e) =>
                   setFormData({ ...formData, parentId: e.target.value })
                 }
-                className="w-full h-10 rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-primary focus:border-primary focus:outline-none"
+                className="w-full h-10 rounded-xl border border-border bg-white px-3.5 text-sm text-primary focus:border-primary focus:outline-none"
               >
                 <option value="">None (Top-Level Root Category)</option>
                 {(treeList.length > 0 ? treeList : categories)
@@ -506,7 +506,7 @@ export const CategoryTable: React.FC = () => {
             </label>
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
             <Button
               type="button"
               variant="outline"

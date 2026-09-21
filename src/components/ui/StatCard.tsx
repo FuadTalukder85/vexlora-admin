@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,7 +20,7 @@ export const StatCard: React.FC<StatCardProps> = ({
   iconColorClass = "bg-primary/10 text-primary",
 }) => {
   return (
-    <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex items-center justify-between hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-2xl p-5 border border-border shadow-xs flex items-center justify-between hover:shadow-md transition-shadow">
       <div>
         <p className="text-xs font-semibold text-secondary uppercase tracking-wider">{title}</p>
         <h4 className="text-2xl font-bold text-primary mt-1 tracking-tight">{value}</h4>
@@ -29,7 +29,7 @@ export const StatCard: React.FC<StatCardProps> = ({
             <span
               className={cn(
                 "px-1.5 py-0.5 rounded-md font-semibold text-[11px]",
-                isPositive ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+                isPositive ? "bg-emerald-50 text-emerald-700" : "bg-highlight/10 text-highlight"
               )}
             >
               {isPositive ? `+${change}` : `-${change}`}

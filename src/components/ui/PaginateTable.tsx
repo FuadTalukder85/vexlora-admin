@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect } from "react";
 import { Inbox } from "lucide-react";
@@ -135,13 +135,13 @@ export function PaginateTable<T>({
   return (
     <div
       className={cn(
-        "bg-white border border-slate-200/80 rounded-2xl shadow-xs flex flex-col overflow-hidden w-full",
+        "bg-white border border-border rounded-2xl shadow-xs flex flex-col overflow-hidden w-full",
         className
       )}
     >
       {/* 1. Optional Top Card Header */}
       {(title || subtitle || action) && (
-        <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="p-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             {title && (
               <h2 className="text-base font-bold text-primary tracking-tight">
@@ -158,7 +158,7 @@ export function PaginateTable<T>({
 
       {/* 2. Optional Header Content (e.g. Filters, Search Bar) */}
       {headerContent && (
-        <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+        <div className="p-4 border-b border-border bg-muted/50">
           {headerContent}
         </div>
       )}
@@ -169,7 +169,7 @@ export function PaginateTable<T>({
         style={{ maxHeight, minHeight }}
       >
         <table className={cn("w-full border-collapse text-left min-w-max", tableClassName)}>
-          <thead className="sticky top-0 z-20 bg-slate-50 border-b border-slate-100">
+          <thead className="sticky top-0 z-20 bg-muted border-b border-border">
             <tr>
               {columns.map((col, index) => {
                 const isStickyRight =
@@ -183,7 +183,7 @@ export function PaginateTable<T>({
                       "py-3.5 px-5 text-xs font-bold text-primary uppercase tracking-wider",
                       headerAlignClasses[col.align || "left"],
                       isStickyRight &&
-                        "sticky right-0 z-30 bg-slate-50 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)] border-l border-slate-200/80",
+                        "sticky right-0 z-30 bg-muted shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)] border-l border-border",
                       col.headerClassName
                     )}
                   >
@@ -200,7 +200,7 @@ export function PaginateTable<T>({
                   key={keyExtractor(row, rowIndex)}
                   onClick={() => onRowClick && onRowClick(row)}
                   className={cn(
-                    "group hover:bg-slate-100 transition-colors",
+                    "group hover:bg-muted transition-colors",
                     onRowClick && "cursor-pointer"
                   )}
                 >
@@ -223,7 +223,7 @@ export function PaginateTable<T>({
                           "py-2.5 px-5",
                           alignClasses[col.align || "left"],
                           isStickyRight &&
-                            "sticky right-0 z-10 bg-white group-hover:bg-slate-100 transition-colors shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)] border-l border-slate-100",
+                            "sticky right-0 z-10 bg-white group-hover:bg-muted transition-colors shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)] border-l border-border",
                           col.className
                         )}
                       >
@@ -237,7 +237,7 @@ export function PaginateTable<T>({
               <tr>
                 <td colSpan={columns.length} className="py-12 px-5 text-center text-secondary">
                   <div className="flex flex-col items-center justify-center gap-2">
-                    {emptyIcon || <Inbox className="w-8 h-8 text-slate-300" />}
+                    {emptyIcon || <Inbox className="w-8 h-8 text-secondary/60" />}
                     <p className="text-xs font-semibold text-secondary">{emptyMessage}</p>
                   </div>
                 </td>
