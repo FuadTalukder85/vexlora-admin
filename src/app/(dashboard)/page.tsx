@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React from "react";
 import Link from "next/link";
@@ -15,11 +15,13 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { formatCurrency } from "@/lib/utils";
 import { useAdminStore } from "@/stores/useAdminStore";
+import { useAdminPayoutStats } from "@/hooks/useAdminPayouts";
 import { DashboardSkeleton } from "./components/DashboardSkeleton";
 import { RecentOrdersTable } from "./components/RecentOrdersTable";
 
 export default function AdminDashboardPage() {
   const { isInitialChecking, isLoading } = useAdminStore();
+  const { data: payoutStats } = useAdminPayoutStats();
 
   if (isInitialChecking || isLoading) {
     return <DashboardSkeleton />;
@@ -54,7 +56,7 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <StatCard
           title="Total Platform GMV"
-          value={formatCurrency(148290.45)}
+          value={formatCurrency(payoutStats?.totalPlatformVolume ?? 148290.45)}
           change="18.2%"
           isPositive={true}
           icon={DollarSign}
@@ -62,7 +64,7 @@ export default function AdminDashboardPage() {
         />
         <StatCard
           title="Net Commission Revenue"
-          value={formatCurrency(14829.05)}
+          value={formatCurrency(payoutStats?.totalCommissionEarned ?? 14829.05)}
           change="14.8%"
           isPositive={true}
           icon={TrendingUp}
@@ -94,9 +96,11 @@ export default function AdminDashboardPage() {
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
               Platform Escrow Guard
             </div>
-            <h3 className="text-2xl font-black tracking-tight">{formatCurrency(32490.15)}</h3>
+            <h3 className="text-2xl font-black tracking-tight">
+              {formatCurrency(payoutStats?.pendingPayoutsAmount ?? 32490.15)}
+            </h3>
             <p className="text-xs text-secondary/60 leading-relaxed">
-              Total funds currently held in platform escrow pending customer delivery confirmations.
+              Total funds currently held in platform escrow pending customer delivery confirmations and payout authorization.
             </p>
           </div>
           <Link href="/payouts">
@@ -127,7 +131,9 @@ export default function AdminDashboardPage() {
 
             <div className="p-4 rounded-xl bg-muted border border-border space-y-1">
               <span className="text-[10px] font-bold text-secondary uppercase">Payout Requests</span>
-              <p className="text-xl font-bold text-emerald-600">4 Ready</p>
+              <p className="text-xl font-bold text-emerald-600">
+                {payoutStats?.pendingPayoutsCount ?? 4} Pending
+              </p>
               <Link href="/payouts" className="text-xs font-semibold text-highlight hover:underline block pt-1">
                 Authorize Transfers &rarr;
               </Link>
