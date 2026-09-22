@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React from "react";
 import Link from "next/link";
@@ -17,6 +17,7 @@ import {
   ChevronRight,
   LogOut,
   ShieldCheck,
+  Flame,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAdminStore } from "@/stores/useAdminStore";
@@ -26,6 +27,7 @@ const navItems = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
   { label: "Categories", href: "/categories", icon: Layers, badge: "Admin" },
   { label: "Products", href: "/products", icon: Package },
+  { label: "Flash Deals", href: "/deals", icon: Flame, badge: "Deals" },
   { label: "Vendors", href: "/vendors", icon: Store },
   { label: "Orders", href: "/orders", icon: ShoppingCart },
   { label: "Payouts & Finance", href: "/payouts", icon: DollarSign },
