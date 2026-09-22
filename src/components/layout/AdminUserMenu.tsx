@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import Link from "next/link";
@@ -45,6 +45,14 @@ export const AdminUserMenu: React.FC = () => {
             </div>
 
             <div className="py-1">
+              <Link
+                href="/profile"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-2.5 px-4 py-2 text-xs text-primary hover:bg-muted font-medium"
+              >
+                <User className="w-4 h-4 text-secondary" />
+                Admin Profile
+              </Link>
               <Link
                 href="/settings"
                 onClick={() => setIsOpen(false)}
