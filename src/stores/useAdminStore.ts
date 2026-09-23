@@ -11,6 +11,9 @@ interface AdminState {
   isInitialChecking: boolean;
   isSidebarOpen: boolean;
   error: string | null;
+  permissions: string[];
+  permissionCategories: string[];
+  isSuperAdmin: boolean;
 
   // Actions
   setUser: (user: User | null) => void;
@@ -20,6 +23,9 @@ interface AdminState {
   login: (email: string, password: string) => Promise<{ user: User; token: string }>;
   logout: () => Promise<void>;
   initAuth: () => Promise<void>;
+  hasPermission: (key: string) => boolean;
+  hasAnyPermission: (keys: string[]) => boolean;
+  hasAllPermissions: (keys: string[]) => boolean;
 }
 
 export const useAdminStore = create<AdminState>((set, get) => ({
@@ -30,10 +36,36 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   isInitialChecking: true,
   isSidebarOpen: true,
   error: null,
+  permissions: [],
+  permissionCategories: [],
+  isSuperAdmin: false,
 
   setUser: (user) => set({ user, isAuthenticated: !!user }),
   toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
   setSidebarOpen: (isOpen) => set({ isSidebarOpen: isOpen }),
+
+  hasPermission: (requiredPermission: string): boolean => {
+    const { permissions, isSuperAdmin, user } = get();
+    if (!user) return false;
+    if (user.role === "SUPER_ADMIN" || isSuperAdmin || permissions.includes("*")) {
+      return true;
+    }
+    const normalizedReq = requiredPermission.toLowerCase().trim();
+    if (permissions.includes(normalizedReq)) return true;
+    const [resource] = normalizedReq.split(":");
+    if (permissions.includes(`${resource}:*`)) return true;
+    return false;
+  },
+
+  hasAnyPermission: (keys: string[]): boolean => {
+    const { hasPermission } = get();
+    return keys.some((key) => hasPermission(key));
+  },
+
+  hasAllPermissions: (keys: string[]): boolean => {
+    const { hasPermission } = get();
+    return keys.every((key) => hasPermission(key));
+  },
 
   fetchProfile: async () => {
     set({ isLoading: true, error: null });
@@ -58,6 +90,9 @@ export const useAdminStore = create<AdminState>((set, get) => ({
           isAuthenticated: false,
           isInitialChecking: false,
           isLoading: false,
+          permissions: [],
+          permissionCategories: [],
+          isSuperAdmin: false,
         });
         return null;
       }
@@ -79,6 +114,29 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         throw new Error("Access denied. Admin role required.");
       }
 
+      // Fetch RBAC effective permissions
+      let resolvedPermissions: string[] = [];
+      let resolvedCategories: string[] = [];
+      let resolvedAssignedRoles: string[] = [];
+      const isSuper = role === "SUPER_ADMIN" || Boolean(userData.isSuperAdmin);
+
+      try {
+        const permRes = await apiClient.get("/rbac/me/permissions", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const permData = permRes.data?.data;
+        if (permData?.permissions) {
+          resolvedPermissions = permData.permissions;
+          resolvedCategories = permData.categories || [];
+          resolvedAssignedRoles = permData.assignedRoles || [];
+        }
+      } catch {
+        // Fallback: If SuperAdmin or unassigned admin, grant appropriate defaults
+        if (isSuper) {
+          resolvedPermissions = ["*"];
+        }
+      }
+
       const userObj: User = {
         id: userData.id,
         name: userData.name || "Administrator",
@@ -87,6 +145,10 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         status: userData.status || "ACTIVE",
         avatar: userData.image || userData.avatar,
         createdAt: userData.createdAt,
+        isSuperAdmin: isSuper,
+        permissions: resolvedPermissions,
+        assignedRoles: resolvedAssignedRoles,
+        userRoles: userData.userRoles,
       };
 
       if (typeof window !== "undefined") {
@@ -100,6 +162,9 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         isInitialChecking: false,
         isLoading: false,
         error: null,
+        permissions: resolvedPermissions,
+        permissionCategories: resolvedCategories,
+        isSuperAdmin: isSuper,
       });
 
       return userObj;
@@ -119,6 +184,9 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         isAuthenticated: false,
         isInitialChecking: false,
         isLoading: false,
+        permissions: [],
+        permissionCategories: [],
+        isSuperAdmin: false,
       });
       return null;
     }
@@ -148,7 +216,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         document.cookie = `vexlora_admin_token=${cookieVal}; path=/; max-age=86400; SameSite=Lax`;
       }
 
-      // Verify profile & admin role
+      // Verify profile & admin role & permissions
       const user = await get().fetchProfile();
 
       if (!user) {
@@ -198,6 +266,9 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         isInitialChecking: false,
         isLoading: false,
         error: null,
+        permissions: [],
+        permissionCategories: [],
+        isSuperAdmin: false,
       });
     }
   },

@@ -1,68 +1,111 @@
-﻿"use client";
+"use client";
 
-import React, { useState } from "react";
-import { UserCheck, UserX, Edit, Search } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import { UserCheck, UserX, KeyRound, Search, Shield, Check } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
+import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { PaginateTable, ColumnDef } from "@/components/ui/PaginateTable";
 import { TableActions, TableActionButton } from "@/components/ui/TableActions";
 import { formatDate } from "@/lib/utils";
 import { User } from "@/types/auth";
 import { UsersSkeleton } from "./UsersSkeleton";
+import { useAdminRbac } from "@/hooks/useAdminRbac";
+import { apiClient } from "@/lib/api-client";
 import { toast } from "sonner";
 
-const mockUsers: User[] = [
-  {
-    id: "u-1",
-    name: "Alexander Vance",
-    email: "admin@vexlora.com",
-    role: "SUPER_ADMIN",
-    status: "ACTIVE",
-    createdAt: "2025-12-01T00:00:00Z",
-  },
-  {
-    id: "u-2",
-    name: "Marcus Aurelius",
-    email: "marcus@apexgaming.io",
-    role: "VENDOR",
-    status: "ACTIVE",
-    createdAt: "2026-01-10T00:00:00Z",
-  },
-  {
-    id: "u-3",
-    name: "Clara Oswald",
-    email: "clara.o@example.com",
-    role: "CUSTOMER",
-    status: "ACTIVE",
-    createdAt: "2026-03-15T00:00:00Z",
-  },
-  {
-    id: "u-4",
-    name: "Suspicious User",
-    email: "bot992@tempmail.org",
-    role: "CUSTOMER",
-    status: "BLOCKED",
-    createdAt: "2026-08-20T00:00:00Z",
-  },
-];
-
 export const UserTable: React.FC = () => {
-  const [users, setUsers] = useState<User[]>(mockUsers);
+  const [users, setUsers] = useState<User[]>([]);
   const [activeTab, setActiveTab] = useState<string>("ALL");
   const [searchTerm, setSearchTerm] = useState("");
-  const [isLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [statusChangingUser, setStatusChangingUser] = useState<User | null>(null);
+
+  // Role Assignment state
+  const { roles, assignRoleToUser } = useAdminRbac();
+  const [roleAssigningUser, setRoleAssigningUser] = useState<User | null>(null);
+  const [selectedRoleId, setSelectedRoleId] = useState<string>("");
+  const [selectedBaseRole, setSelectedBaseRole] = useState<string>("ADMIN");
+  const [isAssigning, setIsAssigning] = useState(false);
+
+  const fetchUsers = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const res = await apiClient.get("/users");
+      const data = res.data?.data || res.data?.users || res.data || [];
+      if (Array.isArray(data)) {
+        setUsers(data);
+      }
+    } catch {
+      // Fallback
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const handleToggleBlock = (user: User) => {
-    const newStatus = user.status === "BLOCKED" ? "ACTIVE" : "BLOCKED";
-    setUsers((prev) =>
-      prev.map((u) => (u.id === user.id ? { ...u, status: newStatus } : u))
+    setStatusChangingUser(user);
+  };
+
+  const handleConfirmToggleBlock = async () => {
+    if (!statusChangingUser) return;
+    const newStatus = statusChangingUser.status === "BLOCKED" ? "ACTIVE" : "BLOCKED";
+    try {
+      await apiClient.patch(`/users/${statusChangingUser.id}`, { status: newStatus });
+      setUsers((prev) =>
+        prev.map((u) => (u.id === statusChangingUser.id ? { ...u, status: newStatus } : u))
+      );
+      toast.success(`User ${statusChangingUser.email} is now ${newStatus}`);
+    } catch {
+      toast.error("Failed to update user status");
+    } finally {
+      setStatusChangingUser(null);
+    }
+  };
+
+  const handleOpenAssignRole = (user: User) => {
+    setRoleAssigningUser(user);
+    const existingRoleId = user.userRoles?.[0]?.roleId || "";
+    setSelectedRoleId(existingRoleId);
+    setSelectedBaseRole(
+      user.role === "SUPER_ADMIN"
+        ? "SUPER_ADMIN"
+        : user.role === "CUSTOMER"
+        ? "ADMIN"
+        : user.role
     );
-    toast.success(`User ${user.email} is now ${newStatus}`);
+  };
+
+  const handleConfirmAssignRole = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!roleAssigningUser || !selectedRoleId) return;
+
+    try {
+      setIsAssigning(true);
+      if (selectedBaseRole && selectedBaseRole !== roleAssigningUser.role && roleAssigningUser.role !== "SUPER_ADMIN") {
+        await apiClient.patch(`/users/${roleAssigningUser.id}`, { role: selectedBaseRole });
+      }
+      await assignRoleToUser(roleAssigningUser.id, selectedRoleId);
+      toast.success(`Assigned role successfully to ${roleAssigningUser.name || roleAssigningUser.email}`);
+      setRoleAssigningUser(null);
+      await fetchUsers();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to assign role";
+      toast.error(msg);
+    } finally {
+      setIsAssigning(false);
+    }
   };
 
   const filteredUsers = users.filter((u) => {
     const matchesSearch =
-      u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchTerm.toLowerCase());
+      (u.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (u.email || "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchesTab =
       activeTab === "ALL" ||
       u.role === activeTab ||
@@ -81,25 +124,41 @@ export const UserTable: React.FC = () => {
       header: "User Details",
       cell: (u) => (
         <div>
-          <p className="font-bold text-primary">{u.name}</p>
+          <p className="font-bold text-primary">{u.name || "Unnamed User"}</p>
           <p className="text-[11px] text-secondary">{u.email}</p>
         </div>
       ),
     },
     {
-      header: "Role",
+      header: "Platform & Custom Role",
       cell: (u) => (
-        <Badge
-          variant={
-            u.role === "SUPER_ADMIN" || u.role === "ADMIN"
-              ? "primary"
-              : u.role === "VENDOR"
-              ? "warning"
-              : "neutral"
-          }
-        >
-          {u.role}
-        </Badge>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <Badge
+            variant={
+              u.role === "SUPER_ADMIN" || u.role === "ADMIN"
+                ? "primary"
+                : u.role === "VENDOR"
+                ? "warning"
+                : "neutral"
+            }
+          >
+            {u.role}
+          </Badge>
+
+          {u.userRoles && u.userRoles.length > 0 && (
+            <div className="flex items-center gap-1 flex-wrap">
+              {u.userRoles.map((ur) => (
+                <Badge
+                  key={ur.id || ur.roleId}
+                  variant="neutral"
+                  className="text-[10px] font-bold border-primary/30 text-primary bg-primary/[0.06] px-2 py-0.5"
+                >
+                  {ur.role?.name || "Custom Role"}
+                </Badge>
+              ))}
+            </div>
+          )}
+        </div>
       ),
     },
     {
@@ -113,16 +172,20 @@ export const UserTable: React.FC = () => {
     },
     {
       header: "Registered",
-      cell: (u) => <span className="text-primary">{formatDate(u.createdAt || "")}</span>,
+      cell: (u) => <span className="text-primary text-xs">{formatDate(u.createdAt || "")}</span>,
     },
     {
       header: "Actions",
       align: "right",
       cell: (u) => (
         <TableActions>
-          <TableActionButton onClick={() => toast.info(`Editing permissions for ${u.name}`)} title="Edit Role">
-            <Edit className="w-4 h-4" />
+          <TableActionButton
+            onClick={() => handleOpenAssignRole(u)}
+            title="Assign Role & Permissions"
+          >
+            <KeyRound className="w-4 h-4 text-primary" />
           </TableActionButton>
+
           {u.status === "BLOCKED" ? (
             <TableActionButton
               hoverVariant="emerald"
@@ -190,6 +253,156 @@ export const UserTable: React.FC = () => {
           </div>
         }
       />
+
+      {/* Assign Custom Role Modal */}
+      <Modal
+        isOpen={!!roleAssigningUser}
+        onClose={() => setRoleAssigningUser(null)}
+        title={`Assign Role & Permissions: ${roleAssigningUser?.name || roleAssigningUser?.email}`}
+        maxWidth="md"
+      >
+        {roleAssigningUser && (
+          <form onSubmit={handleConfirmAssignRole} className="space-y-4">
+            <div className="p-3.5 bg-muted/60 border border-border rounded-xl text-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-bold text-primary">{roleAssigningUser.name || "Unnamed User"}</p>
+                  <p className="text-[11px] text-secondary">{roleAssigningUser.email}</p>
+                </div>
+                <Badge
+                  variant={
+                    roleAssigningUser.role === "SUPER_ADMIN" || roleAssigningUser.role === "ADMIN"
+                      ? "primary"
+                      : roleAssigningUser.role === "VENDOR"
+                      ? "warning"
+                      : "neutral"
+                  }
+                >
+                  Current: {roleAssigningUser.role}
+                </Badge>
+              </div>
+            </div>
+
+            {/* Platform Base Role Option (for promoting or changing user role) */}
+            {roleAssigningUser.role !== "SUPER_ADMIN" && (
+              <div>
+                <label className="block text-xs font-bold text-primary mb-1">
+                  Platform Base Access Level
+                </label>
+                <select
+                  value={selectedBaseRole}
+                  onChange={(e) => setSelectedBaseRole(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-muted/40 border border-border rounded-xl focus:outline-none focus:border-primary"
+                >
+                  <option value="ADMIN">ADMIN (Platform Administrator)</option>
+                  <option value="VENDOR">VENDOR (Store Merchant)</option>
+                  <option value="CUSTOMER">CUSTOMER (Shopper)</option>
+                </select>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-bold text-primary mb-2">
+                Select Custom RBAC Role (Delegated Capabilities)
+              </label>
+              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                {roles.map((role) => {
+                  const isSelected = selectedRoleId === role.id;
+                  return (
+                    <div
+                      key={role.id}
+                      onClick={() => setSelectedRoleId(role.id)}
+                      className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                        isSelected
+                          ? "border-primary bg-primary/5 text-primary shadow-sm"
+                          : "border-border bg-white text-secondary hover:border-border/80"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                            isSelected ? "border-primary bg-primary text-white" : "border-border"
+                          }`}
+                        >
+                          {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs font-bold text-primary">{role.name}</p>
+                            <Badge variant="neutral" className="text-[9px] px-1.5 py-0">
+                              {role.scope}
+                            </Badge>
+                          </div>
+                          <p className="text-[10px] text-secondary mt-0.5">
+                            {role.rolePermissions?.length || 0} permissions &bull; {role.slug}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-3 border-t border-border">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setRoleAssigningUser(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isAssigning || !selectedRoleId}
+                className="gap-2 cursor-pointer"
+              >
+                <Shield className="w-4 h-4" />
+                {isAssigning ? "Saving..." : "Apply & Save Role"}
+              </Button>
+            </div>
+          </form>
+        )}
+      </Modal>
+
+      {/* User Block / Unblock Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={!!statusChangingUser}
+        onClose={() => setStatusChangingUser(null)}
+        onConfirm={handleConfirmToggleBlock}
+        title={
+          statusChangingUser?.status === "BLOCKED"
+            ? "Unblock User Account"
+            : "Block User Account"
+        }
+        confirmText={
+          statusChangingUser?.status === "BLOCKED"
+            ? "Unblock User"
+            : "Block User"
+        }
+        variant={statusChangingUser?.status === "BLOCKED" ? "primary" : "danger"}
+        description={
+          statusChangingUser ? (
+            <div className="space-y-2">
+              <p>
+                Are you sure you want to{" "}
+                <span className="font-bold">
+                  {statusChangingUser.status === "BLOCKED" ? "unblock" : "block"}
+                </span>{" "}
+                user{" "}
+                <span className="font-bold text-primary">{statusChangingUser.name}</span> (
+                <span className="text-secondary">{statusChangingUser.email}</span>)?
+              </p>
+              <p className="text-[11px] text-secondary">
+                {statusChangingUser.status === "BLOCKED"
+                  ? "The user will regain access to their account and platform features."
+                  : "Blocked users will be immediately logged out and unable to access the store or customer services."}
+              </p>
+            </div>
+          ) : undefined
+        }
+      />
     </div>
   );
 };
+

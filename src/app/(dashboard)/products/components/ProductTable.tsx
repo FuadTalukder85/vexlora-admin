@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useMemo, useState } from "react";
 import { Search, Loader2, X } from "lucide-react";
@@ -8,6 +8,7 @@ import { Product, ProductStatus } from "@/types/product";
 import { ProductsSkeleton } from "./ProductsSkeleton";
 import { ProductDetailModal } from "./ProductDetailModal";
 import { getProductTableColumns } from "./ProductTableColumns";
+import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import {
   useAdminProducts,
   useUpdateProductStatus,
@@ -22,6 +23,11 @@ export const ProductTable: React.FC = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
+  const [statusChangingProduct, setStatusChangingProduct] = useState<{
+    product: Product;
+    newStatus: ProductStatus;
+  } | null>(null);
 
   // Queries & Mutations with server pagination
   const { data, isLoading, isFetching, isError, error, refetch } = useAdminProducts({
@@ -53,10 +59,20 @@ export const ProductTable: React.FC = () => {
     setPage(1);
   };
 
-  const handleToggleBlock = async (product: Product) => {
+  const handleToggleBlock = (product: Product) => {
     const newStatus: ProductStatus =
       product.status === "BLOCKED" ? "ACTIVE" : "BLOCKED";
+    setStatusChangingProduct({ product, newStatus });
+  };
 
+  const handleStatusChange = (product: Product, newStatus: ProductStatus) => {
+    if (product.status === newStatus) return;
+    setStatusChangingProduct({ product, newStatus });
+  };
+
+  const handleConfirmStatusChange = async () => {
+    if (!statusChangingProduct) return;
+    const { product, newStatus } = statusChangingProduct;
     try {
       await updateStatusMutation.mutateAsync({
         id: product.id,
@@ -65,13 +81,14 @@ export const ProductTable: React.FC = () => {
 
       toast.success(
         `Product "${product.name || product.title}" is now ${
-          newStatus === "BLOCKED" ? "Blocked from Catalog" : "Active"
+          newStatus === "BLOCKED" ? "Blocked from Catalog" : newStatus
         }`
       );
 
       if (selectedProduct && selectedProduct.id === product.id) {
         setSelectedProduct({ ...selectedProduct, status: newStatus });
       }
+      setStatusChangingProduct(null);
     } catch (err: any) {
       const msg =
         err?.response?.data?.message ||
@@ -81,42 +98,19 @@ export const ProductTable: React.FC = () => {
     }
   };
 
-  const handleStatusChange = async (product: Product, newStatus: ProductStatus) => {
-    try {
-      await updateStatusMutation.mutateAsync({
-        id: product.id,
-        status: newStatus,
-      });
-
-      toast.success(`Product status changed to ${newStatus}`);
-
-      if (selectedProduct && selectedProduct.id === product.id) {
-        setSelectedProduct({ ...selectedProduct, status: newStatus });
-      }
-    } catch (err: any) {
-      const msg =
-        err?.response?.data?.message ||
-        err?.message ||
-        "Failed to update product status.";
-      toast.error(msg);
-    }
+  const handleDelete = (product: Product) => {
+    setDeletingProduct(product);
   };
 
-  const handleDelete = async (product: Product) => {
-    if (
-      !confirm(
-        `Are you sure you want to delete product "${product.name || product.title}"? This cannot be undone.`
-      )
-    ) {
-      return;
-    }
-
+  const handleConfirmDelete = async () => {
+    if (!deletingProduct) return;
     try {
-      await deleteProductMutation.mutateAsync(product.id);
-      toast.success(`Product "${product.name || product.title}" deleted.`);
-      if (selectedProduct?.id === product.id) {
+      await deleteProductMutation.mutateAsync(deletingProduct.id);
+      toast.success(`Product "${deletingProduct.name || deletingProduct.title}" deleted.`);
+      if (selectedProduct?.id === deletingProduct.id) {
         setSelectedProduct(null);
       }
+      setDeletingProduct(null);
     } catch (err: any) {
       const msg =
         err?.response?.data?.message ||
@@ -254,6 +248,78 @@ export const ProductTable: React.FC = () => {
         onDelete={handleDelete}
         isUpdatingStatus={updateStatusMutation.isPending}
         isDeleting={deleteProductMutation.isPending}
+      />
+
+      {/* Delete Product Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={!!deletingProduct}
+        onClose={() => {
+          if (!deleteProductMutation.isPending) {
+            setDeletingProduct(null);
+          }
+        }}
+        onConfirm={handleConfirmDelete}
+        title="Delete Marketplace Product"
+        confirmText="Delete Product"
+        variant="danger"
+        isLoading={deleteProductMutation.isPending}
+        description={
+          deletingProduct ? (
+            <div className="space-y-2">
+              <p>
+                Are you sure you want to permanently delete{" "}
+                <span className="font-bold text-primary">
+                  &quot;{deletingProduct.name || deletingProduct.title}&quot;
+                </span>
+                ?
+              </p>
+              <p className="text-[11px] text-highlight font-medium">
+                This action cannot be undone and will permanently remove this product from the marketplace.
+              </p>
+            </div>
+          ) : undefined
+        }
+      />
+
+      {/* Change Product Status Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={!!statusChangingProduct}
+        onClose={() => {
+          if (!updateStatusMutation.isPending) {
+            setStatusChangingProduct(null);
+          }
+        }}
+        onConfirm={handleConfirmStatusChange}
+        title={
+          statusChangingProduct?.newStatus === "BLOCKED"
+            ? "Block Product from Storefront"
+            : `Change Product Status to ${statusChangingProduct?.newStatus}`
+        }
+        confirmText={
+          statusChangingProduct?.newStatus === "BLOCKED"
+            ? "Block Product"
+            : "Confirm Status Change"
+        }
+        variant={statusChangingProduct?.newStatus === "BLOCKED" ? "danger" : "primary"}
+        isLoading={updateStatusMutation.isPending}
+        description={
+          statusChangingProduct ? (
+            <div className="space-y-2">
+              <p>
+                Are you sure you want to change the status of{" "}
+                <span className="font-bold text-primary">
+                  &quot;{statusChangingProduct.product.name || statusChangingProduct.product.title}&quot;
+                </span>{" "}
+                to <span className="font-bold">{statusChangingProduct.newStatus}</span>?
+              </p>
+              <p className="text-[11px] text-secondary">
+                {statusChangingProduct.newStatus === "BLOCKED"
+                  ? "Blocking this product will instantly hide it from customer searches and storefront listings."
+                  : `This product will be updated to ${statusChangingProduct.newStatus} immediately across the platform.`}
+              </p>
+            </div>
+          ) : undefined
+        }
       />
     </div>
   );

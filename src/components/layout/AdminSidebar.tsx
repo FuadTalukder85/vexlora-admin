@@ -20,30 +20,41 @@ import {
   ShieldCheck,
   Flame,
   Bell,
+  KeyRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAdminStore } from "@/stores/useAdminStore";
 import { Badge } from "@/components/ui/Badge";
 
-const navItems = [
+interface NavItemConfig {
+  label: string;
+  href: string;
+  icon: React.ElementType;
+  badge?: string;
+  permission?: string;
+  anyPermissions?: string[];
+}
+
+const navItems: NavItemConfig[] = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
-  { label: "Categories", href: "/categories", icon: Layers, badge: "Admin" },
-  { label: "Products", href: "/products", icon: Package },
-  { label: "Flash Deals", href: "/deals", icon: Flame, badge: "Deals" },
-  { label: "Vendors", href: "/vendors", icon: Store },
-  { label: "Orders", href: "/orders", icon: ShoppingCart },
-  { label: "Payouts & Finance", href: "/payouts", icon: DollarSign },
-  { label: "Coupons & Promos", href: "/coupons", icon: Tag },
-  { label: "Users & RBAC", href: "/users", icon: Users },
-  { label: "Fraud & Audit", href: "/fraud", icon: ShieldAlert },
-  { label: "Notifications", href: "/notifications", icon: Bell },
-  { label: "Platform Settings", href: "/settings", icon: Settings },
+  { label: "Categories", href: "/categories", icon: Layers, badge: "Admin", permission: "category:read" },
+  { label: "Products", href: "/products", icon: Package, permission: "product:read" },
+  { label: "Flash Deals", href: "/deals", icon: Flame, badge: "Deals", permission: "product:read" },
+  { label: "Vendors", href: "/vendors", icon: Store, permission: "vendor-approval:read" },
+  { label: "Orders", href: "/orders", icon: ShoppingCart, permission: "order:read" },
+  { label: "Payouts & Finance", href: "/payouts", icon: DollarSign, permission: "payout:read" },
+  { label: "Coupons & Promos", href: "/coupons", icon: Tag, permission: "coupon:read" },
+  { label: "Users Directory", href: "/users", icon: Users, permission: "user:read" },
+  { label: "Roles & Permissions", href: "/roles", icon: KeyRound, permission: "admin-management:read" },
+  { label: "Fraud & Audit", href: "/fraud", icon: ShieldAlert, anyPermissions: ["user:read", "admin-management:read"] },
+  { label: "Notifications", href: "/notifications", icon: Bell, permission: "notification:read" },
+  { label: "Platform Settings", href: "/settings", icon: Settings, permission: "global-setting:read" },
 ];
 
 export const AdminSidebar: React.FC = () => {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isSidebarOpen, logout } = useAdminStore();
+  const { user, isSidebarOpen, logout, hasPermission, hasAnyPermission } = useAdminStore();
 
   const handleLogout = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -88,10 +99,24 @@ export const AdminSidebar: React.FC = () => {
               <p className="text-xs font-bold text-primary truncate">
                 {user?.name || "Platform Admin"}
               </p>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <Badge variant="primary" className="text-[9px] px-1.5 py-0 font-bold">
-                  {user?.role || "SUPER_ADMIN"}
-                </Badge>
+              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                {user?.isSuperAdmin ? (
+                  <Badge variant="primary" className="text-[9px] px-1.5 py-0 font-bold">
+                    SUPER ADMIN
+                  </Badge>
+                ) : user?.assignedRoles && user.assignedRoles.length > 0 ? (
+                  <Badge variant="neutral" className="text-[9px] px-1.5 py-0 font-bold bg-primary/10 text-primary border-primary/30 uppercase">
+                    {user.assignedRoles[0]}
+                  </Badge>
+                ) : user?.userRoles && user.userRoles.length > 0 ? (
+                  <Badge variant="neutral" className="text-[9px] px-1.5 py-0 font-bold bg-primary/10 text-primary border-primary/30 uppercase">
+                    {user.userRoles[0].role.name}
+                  </Badge>
+                ) : (
+                  <Badge variant="primary" className="text-[9px] px-1.5 py-0 font-bold">
+                    {user?.role || "ADMIN"}
+                  </Badge>
+                )}
               </div>
             </div>
           </div>
@@ -99,7 +124,14 @@ export const AdminSidebar: React.FC = () => {
 
         {/* Navigation Menu */}
         <nav className="px-3 py-2 space-y-1">
-          {navItems.map((item) => {
+          {navItems
+            .filter((item) => {
+              if (!item.permission && !item.anyPermissions) return true;
+              if (item.permission) return hasPermission(item.permission);
+              if (item.anyPermissions) return hasAnyPermission(item.anyPermissions);
+              return true;
+            })
+            .map((item) => {
             const Icon = item.icon;
             const isActive =
               item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
@@ -165,8 +197,12 @@ export const AdminSidebar: React.FC = () => {
                 <p className="text-xs font-bold text-primary truncate leading-tight">
                   {user?.name || "Administrator"}
                 </p>
-                <p className="text-[10px] text-secondary truncate mt-0.5">
-                  {user?.email || "admin@vexlora.com"}
+                <p className="text-[10px] text-secondary truncate mt-0.5 font-medium">
+                  {user?.assignedRoles && user.assignedRoles.length > 0
+                    ? `Role: ${user.assignedRoles[0]}`
+                    : user?.userRoles && user.userRoles.length > 0
+                    ? `Role: ${user.userRoles[0].role.name}`
+                    : user?.email || "admin@vexlora.com"}
                 </p>
               </div>
             )}
