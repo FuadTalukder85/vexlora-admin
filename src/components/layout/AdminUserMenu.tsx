@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import Link from "next/link";
@@ -41,10 +41,36 @@ export const AdminUserMenu: React.FC = () => {
           <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-lg border border-border py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
             <div className="px-4 py-2 border-b border-border">
               <p className="text-xs font-bold text-primary">{user.name}</p>
-              <p className="text-[11px] text-secondary truncate font-mono">{user.role}</p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                {user.isSuperAdmin ? (
+                  <span className="text-[10px] font-bold text-primary font-mono uppercase bg-primary/10 px-1.5 py-0.5 rounded">
+                    SUPER ADMIN
+                  </span>
+                ) : user.assignedRoles && user.assignedRoles.length > 0 ? (
+                  <span className="text-[10px] font-bold text-primary font-mono uppercase bg-primary/10 px-1.5 py-0.5 rounded">
+                    {user.assignedRoles[0]}
+                  </span>
+                ) : user.userRoles && user.userRoles.length > 0 ? (
+                  <span className="text-[10px] font-bold text-primary font-mono uppercase bg-primary/10 px-1.5 py-0.5 rounded">
+                    {user.userRoles[0].role.name}
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-secondary font-mono">
+                    {user.role}
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="py-1">
+              <Link
+                href="/profile"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-2.5 px-4 py-2 text-xs text-primary hover:bg-muted font-medium"
+              >
+                <User className="w-4 h-4 text-secondary" />
+                Admin Profile
+              </Link>
               <Link
                 href="/settings"
                 onClick={() => setIsOpen(false)}

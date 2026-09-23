@@ -1,89 +1,75 @@
 "use client";
 
 import React, { useState } from "react";
-import { Save } from "lucide-react";
-import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { useAdminStore } from "@/stores/useAdminStore";
+import { Sliders } from "lucide-react";
+import { useAdminSettingsData } from "@/hooks/useAdminSettings";
 import { SettingsSkeleton } from "./components/SettingsSkeleton";
-import { toast } from "sonner";
+import { PlatformSettingsTab } from "./components/PlatformSettingsTab";
+import { cn } from "@/lib/utils";
+
+type AdminSettingsTab = "platform";
 
 export default function AdminSettingsPage() {
-  const { isInitialChecking } = useAdminStore();
-  const [platformName, setPlatformName] = useState("Vexlora Marketplace");
-  const [defaultCommission, setDefaultCommission] = useState(10.0);
-  const [escrowHoldDays, setEscrowHoldDays] = useState(7);
-  const [supportEmail, setSupportEmail] = useState("support@vexlora.com");
-  const [isSaving, setIsSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState<AdminSettingsTab>("platform");
 
-  if (isInitialChecking) {
+  const {
+    platformSettings,
+    stripeBalance,
+    isLoading,
+    updatePlatformSettings,
+    isUpdatingPlatformSettings,
+  } = useAdminSettingsData();
+
+  if (isLoading) {
     return <SettingsSkeleton />;
   }
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSaving(true);
-    await new Promise((r) => setTimeout(r, 600));
-    setIsSaving(false);
-    toast.success("Platform settings saved successfully!");
-  };
+  const tabs: { id: AdminSettingsTab; label: string; icon: React.ReactNode }[] = [
+    { id: "platform", label: "Platform & Marketplace", icon: <Sliders className="w-4 h-4" /> },
+  ];
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      <div>
-        <h1 className="text-2xl font-extrabold text-primary tracking-tight">Platform Configuration</h1>
-        <p className="text-xs text-secondary mt-1">
-          Global marketplace parameters, commission defaults, escrow clearance schedules, and support contact details.
-        </p>
+    <div className="space-y-6 w-full pb-12">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-extrabold text-primary tracking-tight">Platform Settings</h1>
+          <p className="text-xs text-secondary mt-1">
+            Global marketplace governance, financial parameters, default commissions, and operational controls.
+          </p>
+        </div>
       </div>
 
-      <form onSubmit={handleSave} className="space-y-6">
-        <Card title="General Marketplace Settings" subtitle="Brand and support identifiers">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input
-              label="Platform Display Name"
-              value={platformName}
-              onChange={(e) => setPlatformName(e.target.value)}
-              required
-            />
-            <Input
-              label="Official Support Email"
-              type="email"
-              value={supportEmail}
-              onChange={(e) => setSupportEmail(e.target.value)}
-              required
-            />
-          </div>
-        </Card>
+      {/* Navigation Tabs */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-border no-scrollbar w-full">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-150 cursor-pointer",
+              activeTab === tab.id
+                ? "bg-primary text-white shadow-xs"
+                : "text-secondary hover:text-primary hover:bg-muted/70"
+            )}
+          >
+            {tab.icon}
+            <span>{tab.label}</span>
+          </button>
+        ))}
+      </div>
 
-        <Card title="Financial & Commission Defaults" subtitle="Standard rates and escrow clearance rules">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input
-              label="Default Vendor Commission Rate (%)"
-              type="number"
-              step="0.1"
-              value={defaultCommission}
-              onChange={(e) => setDefaultCommission(parseFloat(e.target.value) || 0)}
-              required
-            />
-            <Input
-              label="Escrow Hold Period (Days after delivery)"
-              type="number"
-              value={escrowHoldDays}
-              onChange={(e) => setEscrowHoldDays(parseInt(e.target.value) || 0)}
-              required
-            />
-          </div>
-        </Card>
-
-        <div className="flex justify-end">
-          <Button type="submit" variant="primary" size="md" isLoading={isSaving}>
-            <Save className="w-4 h-4" />
-            Save Platform Settings
-          </Button>
-        </div>
-      </form>
+      {/* Tab Panels */}
+      <div className="w-full">
+        {activeTab === "platform" && (
+          <PlatformSettingsTab
+            platformSettings={platformSettings}
+            stripeBalance={stripeBalance}
+            onUpdatePlatformSettings={updatePlatformSettings}
+            isUpdating={isUpdatingPlatformSettings}
+          />
+        )}
+      </div>
     </div>
   );
 }

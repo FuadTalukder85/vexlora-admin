@@ -1,8 +1,9 @@
-﻿"use client";
+"use client";
 
 import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Image from "next/image";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Layers,
@@ -17,27 +18,49 @@ import {
   ChevronRight,
   LogOut,
   ShieldCheck,
+  Flame,
+  Bell,
+  KeyRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAdminStore } from "@/stores/useAdminStore";
 import { Badge } from "@/components/ui/Badge";
 
-const navItems = [
+interface NavItemConfig {
+  label: string;
+  href: string;
+  icon: React.ElementType;
+  badge?: string;
+  permission?: string;
+  anyPermissions?: string[];
+}
+
+const navItems: NavItemConfig[] = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
-  { label: "Categories", href: "/categories", icon: Layers, badge: "Admin" },
-  { label: "Products", href: "/products", icon: Package },
-  { label: "Vendors", href: "/vendors", icon: Store },
-  { label: "Orders", href: "/orders", icon: ShoppingCart },
-  { label: "Payouts & Finance", href: "/payouts", icon: DollarSign },
-  { label: "Coupons & Promos", href: "/coupons", icon: Tag },
-  { label: "Users & RBAC", href: "/users", icon: Users },
-  { label: "Fraud & Audit", href: "/fraud", icon: ShieldAlert },
-  { label: "Settings", href: "/settings", icon: Settings },
+  { label: "Categories", href: "/categories", icon: Layers, badge: "Admin", permission: "category:read" },
+  { label: "Products", href: "/products", icon: Package, permission: "product:read" },
+  { label: "Flash Deals", href: "/deals", icon: Flame, badge: "Deals", permission: "product:read" },
+  { label: "Vendors", href: "/vendors", icon: Store, permission: "vendor-approval:read" },
+  { label: "Orders", href: "/orders", icon: ShoppingCart, permission: "order:read" },
+  { label: "Payouts & Finance", href: "/payouts", icon: DollarSign, permission: "payout:read" },
+  { label: "Coupons & Promos", href: "/coupons", icon: Tag, permission: "coupon:read" },
+  { label: "Users Directory", href: "/users", icon: Users, permission: "user:read" },
+  { label: "Roles & Permissions", href: "/roles", icon: KeyRound, permission: "admin-management:read" },
+  { label: "Fraud & Audit", href: "/fraud", icon: ShieldAlert, anyPermissions: ["user:read", "admin-management:read"] },
+  { label: "Notifications", href: "/notifications", icon: Bell, permission: "notification:read" },
+  { label: "Platform Settings", href: "/settings", icon: Settings, permission: "global-setting:read" },
 ];
 
 export const AdminSidebar: React.FC = () => {
   const pathname = usePathname();
-  const { user, isSidebarOpen, logout } = useAdminStore();
+  const router = useRouter();
+  const { user, isSidebarOpen, logout, hasPermission, hasAnyPermission } = useAdminStore();
+
+  const handleLogout = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    logout();
+    router.push("/login");
+  };
 
   return (
     <aside
@@ -47,7 +70,7 @@ export const AdminSidebar: React.FC = () => {
       )}
     >
       {/* Top Header & Brand */}
-      <div>
+      <div className="flex-1 overflow-y-auto">
         <div className="h-16 px-6 border-b border-border flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
             <div className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center font-bold text-xl shadow-md group-hover:bg-primary/90 transition-colors">
@@ -76,18 +99,39 @@ export const AdminSidebar: React.FC = () => {
               <p className="text-xs font-bold text-primary truncate">
                 {user?.name || "Platform Admin"}
               </p>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <Badge variant="primary" className="text-[9px] px-1.5 py-0 font-bold">
-                  {user?.role || "SUPER_ADMIN"}
-                </Badge>
+              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                {user?.isSuperAdmin ? (
+                  <Badge variant="primary" className="text-[9px] px-1.5 py-0 font-bold">
+                    SUPER ADMIN
+                  </Badge>
+                ) : user?.assignedRoles && user.assignedRoles.length > 0 ? (
+                  <Badge variant="neutral" className="text-[9px] px-1.5 py-0 font-bold bg-primary/10 text-primary border-primary/30 uppercase">
+                    {user.assignedRoles[0]}
+                  </Badge>
+                ) : user?.userRoles && user.userRoles.length > 0 ? (
+                  <Badge variant="neutral" className="text-[9px] px-1.5 py-0 font-bold bg-primary/10 text-primary border-primary/30 uppercase">
+                    {user.userRoles[0].role.name}
+                  </Badge>
+                ) : (
+                  <Badge variant="primary" className="text-[9px] px-1.5 py-0 font-bold">
+                    {user?.role || "ADMIN"}
+                  </Badge>
+                )}
               </div>
             </div>
           </div>
         )}
 
         {/* Navigation Menu */}
-        <nav className="px-3 py-2 space-y-1 overflow-y-auto max-h-[calc(100vh-250px)]">
-          {navItems.map((item) => {
+        <nav className="px-3 py-2 space-y-1">
+          {navItems
+            .filter((item) => {
+              if (!item.permission && !item.anyPermissions) return true;
+              if (item.permission) return hasPermission(item.permission);
+              if (item.anyPermissions) return hasAnyPermission(item.anyPermissions);
+              return true;
+            })
+            .map((item) => {
             const Icon = item.icon;
             const isActive =
               item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
@@ -124,21 +168,59 @@ export const AdminSidebar: React.FC = () => {
         </nav>
       </div>
 
-      {/* Bottom Actions / Sign out link */}
-      <div className="p-4 border-t border-border">
-        <button
-          onClick={() => {
-            logout();
-            window.location.href = "/login";
-          }}
+      {/* Bottom User Profile & Logout Widget */}
+      <div className="p-3 border-t border-border bg-white">
+        <div
           className={cn(
-            "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-highlight hover:bg-highlight/10 transition-all cursor-pointer",
+            "flex items-center justify-between gap-2 p-2 rounded-xl hover:bg-muted/70 transition-colors group",
             !isSidebarOpen && "justify-center"
           )}
         >
-          <LogOut className="w-5 h-5 shrink-0" />
-          {isSidebarOpen && <span>Sign Out</span>}
-        </button>
+          {/* Profile Avatar & Email linking to /profile */}
+          <Link
+            href="/profile"
+            className="flex items-center gap-2.5 min-w-0 flex-1 group-hover:opacity-90 transition-opacity"
+            title="View Admin Profile"
+          >
+            <div className="w-9 h-9 rounded-full bg-muted border border-border overflow-hidden relative shrink-0">
+              {user?.avatar ? (
+                <Image src={user.avatar} alt={user.name || "Admin"} fill className="object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-primary text-white font-bold text-xs">
+                  {user?.name?.charAt(0) || "A"}
+                </div>
+              )}
+            </div>
+
+            {isSidebarOpen && (
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-primary truncate leading-tight">
+                  {user?.name || "Administrator"}
+                </p>
+                <p className="text-[10px] text-secondary truncate mt-0.5 font-medium">
+                  {user?.assignedRoles && user.assignedRoles.length > 0
+                    ? `Role: ${user.assignedRoles[0]}`
+                    : user?.userRoles && user.userRoles.length > 0
+                    ? `Role: ${user.userRoles[0].role.name}`
+                    : user?.email || "admin@vexlora.com"}
+                </p>
+              </div>
+            )}
+          </Link>
+
+          {/* Logout Icon Button on the Right */}
+          {isSidebarOpen && (
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="p-1.5 rounded-lg text-secondary hover:text-highlight hover:bg-highlight/10 transition-colors shrink-0 cursor-pointer"
+              title="Sign Out"
+              aria-label="Sign Out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
     </aside>
   );

@@ -6,9 +6,22 @@ export interface User {
   avatar?: string;
   status: "ACTIVE" | "BLOCKED" | "PENDING";
   createdAt?: string;
+  isSuperAdmin?: boolean;
+  permissions?: string[];
+  assignedRoles?: string[];
+  userRoles?: Array<{
+    id: string;
+    roleId: string;
+    role: {
+      id: string;
+      name: string;
+      slug: string;
+    };
+  }>;
 }
 
 export interface AuthResponse {
   user: User;
   token: string;
 }
+
