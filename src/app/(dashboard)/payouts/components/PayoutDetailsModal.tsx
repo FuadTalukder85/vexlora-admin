@@ -15,6 +15,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
+import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -40,6 +41,10 @@ export const PayoutDetailsModal: React.FC<PayoutDetailsModalProps> = ({
 }) => {
   const [customTransferRef, setCustomTransferRef] = useState("");
   const [showRefInput, setShowRefInput] = useState(false);
+  const [confirmingAction, setConfirmingAction] = useState<{
+    type: "DISBURSE_STRIPE" | "STATUS_CHANGE";
+    targetStatus?: PayoutStatus;
+  } | null>(null);
 
   const { data: details, isLoading } = useAdminPayoutDetails(payout?.id || null);
   const { data: stripeBalance } = useStripePlatformBalance();
@@ -52,36 +57,48 @@ export const PayoutDetailsModal: React.FC<PayoutDetailsModalProps> = ({
   const subOrders = details?.subOrders || payout.subOrders || [];
   const isStripeBalanceAvailable = (stripeBalance?.available ?? 0) >= Number(payout.amount);
 
-  const handleDisburseStripe = async () => {
-    try {
-      await disburseStripeMutation.mutateAsync(payout.id);
-      toast.success(
-        `Disbursement to ${payout.vendorName} executed successfully via Stripe Connect!`
-      );
-      onClose();
-    } catch (error: any) {
-      toast.error(
-        error.response?.data?.message || "Stripe Connect payout transfer failed"
-      );
-    }
+  const handleTriggerDisburseStripe = () => {
+    setConfirmingAction({ type: "DISBURSE_STRIPE" });
   };
 
-  const handleUpdateStatus = async (status: PayoutStatus) => {
-    try {
-      await updateStatusMutation.mutateAsync({
-        id: payout.id,
-        payload: {
-          status,
-          stripeTransferId: customTransferRef.trim() || undefined,
-        },
-      });
-      toast.success(`Payout marked as ${status}`);
-      setShowRefInput(false);
-      onClose();
-    } catch (error: any) {
-      toast.error(
-        error.response?.data?.message || `Failed to update payout status to ${status}`
-      );
+  const handleTriggerUpdateStatus = (status: PayoutStatus) => {
+    setConfirmingAction({ type: "STATUS_CHANGE", targetStatus: status });
+  };
+
+  const handleConfirmAction = async () => {
+    if (!confirmingAction) return;
+
+    if (confirmingAction.type === "DISBURSE_STRIPE") {
+      try {
+        await disburseStripeMutation.mutateAsync(payout.id);
+        toast.success(
+          `Disbursement to ${payout.vendorName} executed successfully via Stripe Connect!`
+        );
+        setConfirmingAction(null);
+        onClose();
+      } catch (error: any) {
+        toast.error(
+          error.response?.data?.message || "Stripe Connect payout transfer failed"
+        );
+      }
+    } else if (confirmingAction.type === "STATUS_CHANGE" && confirmingAction.targetStatus) {
+      try {
+        await updateStatusMutation.mutateAsync({
+          id: payout.id,
+          payload: {
+            status: confirmingAction.targetStatus,
+            stripeTransferId: customTransferRef.trim() || undefined,
+          },
+        });
+        toast.success(`Payout marked as ${confirmingAction.targetStatus}`);
+        setShowRefInput(false);
+        setConfirmingAction(null);
+        onClose();
+      } catch (error: any) {
+        toast.error(
+          error.response?.data?.message || `Failed to update payout status to ${confirmingAction.targetStatus}`
+        );
+      }
     }
   };
 
@@ -99,12 +116,13 @@ export const PayoutDetailsModal: React.FC<PayoutDetailsModalProps> = ({
   );
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Payout & Escrow Settlement Breakdown"
-      maxWidth="xl"
-    >
+    <>
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        title="Payout & Escrow Settlement Breakdown"
+        maxWidth="xl"
+      >
       <div className="space-y-6">
         {/* Header Summary */}
         <div className="p-4 bg-muted/60 rounded-2xl border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -347,7 +365,7 @@ export const PayoutDetailsModal: React.FC<PayoutDetailsModalProps> = ({
                 <Button
                   variant="primary"
                   size="sm"
-                  onClick={() => handleUpdateStatus("PAID")}
+                  onClick={() => handleTriggerUpdateStatus("PAID")}
                   isLoading={updateStatusMutation.isPending}
                 >
                   Confirm Settlement
@@ -371,7 +389,7 @@ export const PayoutDetailsModal: React.FC<PayoutDetailsModalProps> = ({
                     <Button
                       variant="primary"
                       size="sm"
-                      onClick={handleDisburseStripe}
+                      onClick={handleTriggerDisburseStripe}
                       isLoading={disburseStripeMutation.isPending}
                       className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5"
                     >
@@ -396,7 +414,7 @@ export const PayoutDetailsModal: React.FC<PayoutDetailsModalProps> = ({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleUpdateStatus("PROCESSING")}
+                      onClick={() => handleTriggerUpdateStatus("PROCESSING")}
                       isLoading={updateStatusMutation.isPending}
                       className="gap-1.5"
                     >
@@ -408,7 +426,7 @@ export const PayoutDetailsModal: React.FC<PayoutDetailsModalProps> = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleUpdateStatus("FAILED")}
+                    onClick={() => handleTriggerUpdateStatus("FAILED")}
                     isLoading={updateStatusMutation.isPending}
                     className="text-rose-700 border-rose-200 hover:bg-rose-50 gap-1.5"
                   >
@@ -426,5 +444,97 @@ export const PayoutDetailsModal: React.FC<PayoutDetailsModalProps> = ({
         </div>
       </div>
     </Modal>
+
+    {/* Confirmation Modal */}
+    <ConfirmationModal
+      isOpen={!!confirmingAction}
+      onClose={() => {
+        if (!updateStatusMutation.isPending && !disburseStripeMutation.isPending) {
+          setConfirmingAction(null);
+        }
+      }}
+      onConfirm={handleConfirmAction}
+      title={
+        confirmingAction?.type === "DISBURSE_STRIPE"
+          ? "Disburse Funds via Stripe Connect"
+          : confirmingAction?.targetStatus === "PAID"
+          ? "Confirm Bank Wire Settlement"
+          : confirmingAction?.targetStatus === "PROCESSING"
+          ? "Mark Payout as Processing"
+          : "Reject / Revert Payout Request"
+      }
+      confirmText={
+        confirmingAction?.type === "DISBURSE_STRIPE"
+          ? `Disburse ${formatCurrency(payout.amount)}`
+          : confirmingAction?.targetStatus === "PAID"
+          ? "Confirm Settlement (Mark Paid)"
+          : confirmingAction?.targetStatus === "PROCESSING"
+          ? "Set to Processing"
+          : "Reject Payout Request"
+      }
+      variant={
+        confirmingAction?.targetStatus === "FAILED"
+          ? "danger"
+          : confirmingAction?.targetStatus === "PROCESSING"
+          ? "warning"
+          : "primary"
+      }
+      isLoading={updateStatusMutation.isPending || disburseStripeMutation.isPending}
+      description={
+        confirmingAction ? (
+          <div className="space-y-2">
+            {confirmingAction.type === "DISBURSE_STRIPE" ? (
+              <>
+                <p>
+                  Execute an automated instant payout transfer of{" "}
+                  <span className="font-bold text-emerald-600">
+                    {formatCurrency(payout.amount)}
+                  </span>{" "}
+                  to merchant{" "}
+                  <span className="font-bold text-primary">{payout.vendorName}</span> via Stripe Connect?
+                </p>
+                <p className="text-[11px] text-secondary">
+                  Account: <span className="font-mono">{payout.stripeAccountId}</span>
+                </p>
+              </>
+            ) : confirmingAction.targetStatus === "PAID" ? (
+              <>
+                <p>
+                  Confirm that manual bank wire of{" "}
+                  <span className="font-bold text-emerald-600">
+                    {formatCurrency(payout.amount)}
+                  </span>{" "}
+                  has been settled for{" "}
+                  <span className="font-bold text-primary">{payout.vendorName}</span>?
+                </p>
+                {customTransferRef && (
+                  <p className="text-[11px] text-secondary">
+                    Reference: <span className="font-mono">{customTransferRef}</span>
+                  </p>
+                )}
+              </>
+            ) : confirmingAction.targetStatus === "PROCESSING" ? (
+              <p>
+                Move payout request for{" "}
+                <span className="font-bold text-primary">{payout.vendorName}</span> (
+                {formatCurrency(payout.amount)}) to in-progress processing?
+              </p>
+            ) : (
+              <>
+                <p>
+                  Are you sure you want to reject/revert payout request for{" "}
+                  <span className="font-bold text-primary">{payout.vendorName}</span> (
+                  {formatCurrency(payout.amount)})?
+                </p>
+                <p className="text-[11px] text-highlight font-medium">
+                  All associated sub-orders will be released back to the vendor&apos;s available withdrawal balance.
+                </p>
+              </>
+            )}
+          </div>
+        ) : undefined
+      }
+    />
+  </>
   );
 };

@@ -1,8 +1,9 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import { Eye, CheckCircle2, Search } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
+import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { PaginateTable, ColumnDef } from "@/components/ui/PaginateTable";
 import { TableActions, TableActionButton } from "@/components/ui/TableActions";
 import { formatDate } from "@/lib/utils";
@@ -48,6 +49,16 @@ export const FraudTable: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>("ALL");
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading] = useState(false);
+  const [resolvingLog, setResolvingLog] = useState<FraudLog | null>(null);
+
+  const handleConfirmResolve = () => {
+    if (!resolvingLog) return;
+    setLogs((prev) =>
+      prev.map((item) => (item.id === resolvingLog.id ? { ...item, status: "RESOLVED" } : item))
+    );
+    toast.success(`Risk flag for ${resolvingLog.entityId} resolved`);
+    setResolvingLog(null);
+  };
 
   const filteredLogs = logs.filter((l) => {
     const matchesSearch =
@@ -124,12 +135,7 @@ export const FraudTable: React.FC = () => {
           {l.status === "INVESTIGATING" && (
             <TableActionButton
               hoverVariant="emerald"
-              onClick={() => {
-                setLogs((prev) =>
-                  prev.map((item) => (item.id === l.id ? { ...item, status: "RESOLVED" } : item))
-                );
-                toast.success(`Risk flag for ${l.entityId} resolved`);
-              }}
+              onClick={() => setResolvingLog(l)}
               title="Resolve Risk Alert"
             >
               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -183,6 +189,38 @@ export const FraudTable: React.FC = () => {
               />
             </div>
           </div>
+        }
+      />
+
+      {/* Resolve Fraud Risk Alert Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={!!resolvingLog}
+        onClose={() => setResolvingLog(null)}
+        onConfirm={handleConfirmResolve}
+        title="Resolve Security & Fraud Alert"
+        confirmText="Mark as Resolved"
+        variant="primary"
+        description={
+          resolvingLog ? (
+            <div className="space-y-2">
+              <p>
+                Are you sure you want to mark risk alert for entity{" "}
+                <span className="font-bold text-primary font-mono">{resolvingLog.entityId}</span> (
+                <span className="font-semibold">{resolvingLog.entityType}</span>) as{" "}
+                <span className="font-bold text-emerald-600">RESOLVED</span>?
+              </p>
+              <div className="p-3 bg-muted rounded-xl border border-border text-xs space-y-1">
+                <p className="font-semibold text-primary">Flag Reason:</p>
+                <p className="text-secondary">{resolvingLog.flagReason}</p>
+                <p className="text-[11px] font-bold text-highlight">
+                  Risk Score: {resolvingLog.riskScore}/100 ({resolvingLog.riskLevel})
+                </p>
+              </div>
+              <p className="text-[11px] text-secondary">
+                This indicates investigation is complete and any precautionary flags or holds may be safely cleared.
+              </p>
+            </div>
+          ) : undefined
         }
       />
     </div>

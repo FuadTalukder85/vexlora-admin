@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Bell, Check, Trash2, Send } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { AdminNotification } from "@/hooks/useAdminSettings";
 import { BroadcastAnnouncementModal } from "./BroadcastAnnouncementModal";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,18 @@ export const AdminNotificationsTab: React.FC<AdminNotificationsTabProps> = ({
   onClearAll,
 }) => {
   const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
+  const [isClearModalOpen, setIsClearModalOpen] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
+
+  const handleConfirmClearAll = async () => {
+    setIsClearing(true);
+    try {
+      await onClearAll();
+      setIsClearModalOpen(false);
+    } finally {
+      setIsClearing(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -50,7 +63,13 @@ export const AdminNotificationsTab: React.FC<AdminNotificationsTabProps> = ({
               <Check className="w-3.5 h-3.5" />
               Mark All Read
             </Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => onClearAll()}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={notifications.length === 0}
+              onClick={() => setIsClearModalOpen(true)}
+            >
               <Trash2 className="w-3.5 h-3.5" />
               Clear All
             </Button>
@@ -92,6 +111,20 @@ export const AdminNotificationsTab: React.FC<AdminNotificationsTabProps> = ({
         isOpen={isBroadcastModalOpen}
         onClose={() => setIsBroadcastModalOpen(false)}
         onBroadcast={onBroadcast}
+      />
+
+      {/* Clear All Notifications Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={isClearModalOpen}
+        onClose={() => {
+          if (!isClearing) setIsClearModalOpen(false);
+        }}
+        onConfirm={handleConfirmClearAll}
+        title="Clear All Notifications"
+        confirmText="Clear Notifications"
+        variant="danger"
+        isLoading={isClearing}
+        description="Are you sure you want to permanently clear all notifications from your administrative feed? This action cannot be undone."
       />
     </div>
   );

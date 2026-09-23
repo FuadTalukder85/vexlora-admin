@@ -1,8 +1,9 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import { UserCheck, UserX, Edit, Search } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
+import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { PaginateTable, ColumnDef } from "@/components/ui/PaginateTable";
 import { TableActions, TableActionButton } from "@/components/ui/TableActions";
 import { formatDate } from "@/lib/utils";
@@ -50,13 +51,20 @@ export const UserTable: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>("ALL");
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading] = useState(false);
+  const [statusChangingUser, setStatusChangingUser] = useState<User | null>(null);
 
   const handleToggleBlock = (user: User) => {
-    const newStatus = user.status === "BLOCKED" ? "ACTIVE" : "BLOCKED";
+    setStatusChangingUser(user);
+  };
+
+  const handleConfirmToggleBlock = () => {
+    if (!statusChangingUser) return;
+    const newStatus = statusChangingUser.status === "BLOCKED" ? "ACTIVE" : "BLOCKED";
     setUsers((prev) =>
-      prev.map((u) => (u.id === user.id ? { ...u, status: newStatus } : u))
+      prev.map((u) => (u.id === statusChangingUser.id ? { ...u, status: newStatus } : u))
     );
-    toast.success(`User ${user.email} is now ${newStatus}`);
+    toast.success(`User ${statusChangingUser.email} is now ${newStatus}`);
+    setStatusChangingUser(null);
   };
 
   const filteredUsers = users.filter((u) => {
@@ -188,6 +196,44 @@ export const UserTable: React.FC = () => {
               />
             </div>
           </div>
+        }
+      />
+
+      {/* User Block / Unblock Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={!!statusChangingUser}
+        onClose={() => setStatusChangingUser(null)}
+        onConfirm={handleConfirmToggleBlock}
+        title={
+          statusChangingUser?.status === "BLOCKED"
+            ? "Unblock User Account"
+            : "Block User Account"
+        }
+        confirmText={
+          statusChangingUser?.status === "BLOCKED"
+            ? "Unblock User"
+            : "Block User"
+        }
+        variant={statusChangingUser?.status === "BLOCKED" ? "primary" : "danger"}
+        description={
+          statusChangingUser ? (
+            <div className="space-y-2">
+              <p>
+                Are you sure you want to{" "}
+                <span className="font-bold">
+                  {statusChangingUser.status === "BLOCKED" ? "unblock" : "block"}
+                </span>{" "}
+                user{" "}
+                <span className="font-bold text-primary">{statusChangingUser.name}</span> (
+                <span className="text-secondary">{statusChangingUser.email}</span>)?
+              </p>
+              <p className="text-[11px] text-secondary">
+                {statusChangingUser.status === "BLOCKED"
+                  ? "The user will regain access to their account and platform features."
+                  : "Blocked users will be immediately logged out and unable to access the store or customer services."}
+              </p>
+            </div>
+          ) : undefined
         }
       />
     </div>
