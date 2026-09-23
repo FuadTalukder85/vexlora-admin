@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import {
@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
+import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { PaginateTable, ColumnDef } from "@/components/ui/PaginateTable";
 import { TableActions, TableActionButton } from "@/components/ui/TableActions";
 import { formatDate } from "@/lib/utils";
@@ -34,6 +35,7 @@ export const CategoryTable: React.FC = () => {
   const [pageSize, setPageSize] = useState(20);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
 
   // Queries & Mutations with server pagination
   const { data, isLoading, isError, error, refetch } = useAdminCategories({
@@ -146,18 +148,16 @@ export const CategoryTable: React.FC = () => {
     }
   };
 
-  const handleDelete = async (category: Category) => {
-    if (
-      !confirm(
-        `Are you sure you want to delete category "${category.name}"? Sub-categories will be gracefully re-linked to their parent.`
-      )
-    ) {
-      return;
-    }
+  const handleDelete = (category: Category) => {
+    setDeletingCategory(category);
+  };
 
+  const handleConfirmDelete = async () => {
+    if (!deletingCategory) return;
     try {
-      await deleteCategoryMutation.mutateAsync(category.id);
-      toast.success(`Category "${category.name}" deleted successfully.`);
+      await deleteCategoryMutation.mutateAsync(deletingCategory.id);
+      toast.success(`Category "${deletingCategory.name}" deleted successfully.`);
+      setDeletingCategory(null);
     } catch (err: any) {
       const msg =
         err?.response?.data?.message ||
@@ -531,6 +531,37 @@ export const CategoryTable: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Delete Category Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={!!deletingCategory}
+        onClose={() => {
+          if (!deleteCategoryMutation.isPending) {
+            setDeletingCategory(null);
+          }
+        }}
+        onConfirm={handleConfirmDelete}
+        title="Delete Taxonomy Category"
+        confirmText="Delete Category"
+        variant="danger"
+        isLoading={deleteCategoryMutation.isPending}
+        description={
+          deletingCategory ? (
+            <div className="space-y-2">
+              <p>
+                Are you sure you want to delete category{" "}
+                <span className="font-bold text-primary">
+                  &quot;{deletingCategory.name}&quot;
+                </span>
+                ?
+              </p>
+              <p className="text-[11px] text-secondary">
+                Sub-categories under this category will be gracefully re-linked to their parent category.
+              </p>
+            </div>
+          ) : undefined
+        }
+      />
     </div>
   );
 };

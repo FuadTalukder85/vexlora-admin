@@ -24,6 +24,7 @@ import { PayoutsSkeleton } from "./PayoutsSkeleton";
 import { FinanceStatsGrid } from "./FinanceStatsGrid";
 import { PayoutDetailsModal } from "./PayoutDetailsModal";
 import { CreatePayoutModal } from "./CreatePayoutModal";
+import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import {
   useAdminPayouts,
   useAdminPayoutStats,
@@ -41,6 +42,11 @@ export const PayoutTable: React.FC = () => {
 
   const [selectedPayout, setSelectedPayout] = useState<PayoutRequest | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [confirmingPayoutAction, setConfirmingPayoutAction] = useState<{
+    payout: PayoutRequest;
+    type: "DISBURSE_STRIPE" | "STATUS_CHANGE";
+    targetStatus?: PayoutStatus;
+  } | null>(null);
 
   // Queries
   const {
@@ -62,35 +68,55 @@ export const PayoutTable: React.FC = () => {
   const updateStatusMutation = useUpdatePayoutStatus();
   const disburseStripeMutation = useDisburseStripePayout();
 
-  const handleUpdateStatus = async (
+  const handleUpdateStatus = (
     payout: PayoutRequest,
     status: PayoutStatus
   ) => {
-    try {
-      await updateStatusMutation.mutateAsync({
-        id: payout.id,
-        payload: { status },
-      });
-      toast.success(
-        `Payout #${payout.id.slice(-6)} for ${payout.vendorName} updated to ${status}`
-      );
-    } catch (error: any) {
-      toast.error(
-        error.response?.data?.message || "Failed to update payout status"
-      );
-    }
+    setConfirmingPayoutAction({
+      payout,
+      type: "STATUS_CHANGE",
+      targetStatus: status,
+    });
   };
 
-  const handleDisburseStripe = async (payout: PayoutRequest) => {
-    try {
-      await disburseStripeMutation.mutateAsync(payout.id);
-      toast.success(
-        `Automated Stripe Transfer for ${payout.vendorName} executed successfully!`
-      );
-    } catch (error: any) {
-      toast.error(
-        error.response?.data?.message || "Stripe Connect payout transfer failed"
-      );
+  const handleDisburseStripe = (payout: PayoutRequest) => {
+    setConfirmingPayoutAction({
+      payout,
+      type: "DISBURSE_STRIPE",
+    });
+  };
+
+  const handleConfirmPayoutAction = async () => {
+    if (!confirmingPayoutAction) return;
+    const { payout, type, targetStatus } = confirmingPayoutAction;
+
+    if (type === "DISBURSE_STRIPE") {
+      try {
+        await disburseStripeMutation.mutateAsync(payout.id);
+        toast.success(
+          `Automated Stripe Transfer for ${payout.vendorName} executed successfully!`
+        );
+        setConfirmingPayoutAction(null);
+      } catch (error: any) {
+        toast.error(
+          error.response?.data?.message || "Stripe Connect payout transfer failed"
+        );
+      }
+    } else if (type === "STATUS_CHANGE" && targetStatus) {
+      try {
+        await updateStatusMutation.mutateAsync({
+          id: payout.id,
+          payload: { status: targetStatus },
+        });
+        toast.success(
+          `Payout #${payout.id.slice(-6)} for ${payout.vendorName} updated to ${targetStatus}`
+        );
+        setConfirmingPayoutAction(null);
+      } catch (error: any) {
+        toast.error(
+          error.response?.data?.message || "Failed to update payout status"
+        );
+      }
     }
   };
 
@@ -370,6 +396,106 @@ export const PayoutTable: React.FC = () => {
       <CreatePayoutModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
+      />
+
+      {/* Payout Action Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={!!confirmingPayoutAction}
+        onClose={() => {
+          if (!updateStatusMutation.isPending && !disburseStripeMutation.isPending) {
+            setConfirmingPayoutAction(null);
+          }
+        }}
+        onConfirm={handleConfirmPayoutAction}
+        title={
+          confirmingPayoutAction?.type === "DISBURSE_STRIPE"
+            ? "Disburse Funds via Stripe Connect"
+            : confirmingPayoutAction?.targetStatus === "PAID"
+            ? "Confirm Bank Wire Settlement"
+            : confirmingPayoutAction?.targetStatus === "PROCESSING"
+            ? "Mark Payout as Processing"
+            : "Reject / Revert Payout Request"
+        }
+        confirmText={
+          confirmingPayoutAction?.type === "DISBURSE_STRIPE"
+            ? `Disburse ${confirmingPayoutAction ? formatCurrency(confirmingPayoutAction.payout.amount) : ""}`
+            : confirmingPayoutAction?.targetStatus === "PAID"
+            ? "Confirm Settlement (Mark Paid)"
+            : confirmingPayoutAction?.targetStatus === "PROCESSING"
+            ? "Set to Processing"
+            : "Reject Payout Request"
+        }
+        variant={
+          confirmingPayoutAction?.targetStatus === "FAILED"
+            ? "danger"
+            : confirmingPayoutAction?.targetStatus === "PROCESSING"
+            ? "warning"
+            : "primary"
+        }
+        isLoading={updateStatusMutation.isPending || disburseStripeMutation.isPending}
+        description={
+          confirmingPayoutAction ? (
+            <div className="space-y-2">
+              {confirmingPayoutAction.type === "DISBURSE_STRIPE" ? (
+                <>
+                  <p>
+                    Execute an automated instant payout transfer of{" "}
+                    <span className="font-bold text-emerald-600">
+                      {formatCurrency(confirmingPayoutAction.payout.amount)}
+                    </span>{" "}
+                    to merchant{" "}
+                    <span className="font-bold text-primary">
+                      {confirmingPayoutAction.payout.vendorName}
+                    </span>{" "}
+                    via Stripe Connect?
+                  </p>
+                  <p className="text-[11px] text-secondary">
+                    Account: <span className="font-mono">{confirmingPayoutAction.payout.stripeAccountId}</span>
+                  </p>
+                </>
+              ) : confirmingPayoutAction.targetStatus === "PAID" ? (
+                <>
+                  <p>
+                    Confirm that manual bank wire of{" "}
+                    <span className="font-bold text-emerald-600">
+                      {formatCurrency(confirmingPayoutAction.payout.amount)}
+                    </span>{" "}
+                    has been settled for{" "}
+                    <span className="font-bold text-primary">
+                      {confirmingPayoutAction.payout.vendorName}
+                    </span>
+                    ?
+                  </p>
+                  <p className="text-[11px] text-secondary">
+                    Bank: {confirmingPayoutAction.payout.bankName} &bull; Account:{" "}
+                    <span className="font-mono">{confirmingPayoutAction.payout.bankAccountNumber}</span>
+                  </p>
+                </>
+              ) : confirmingPayoutAction.targetStatus === "PROCESSING" ? (
+                <p>
+                  Move payout request for{" "}
+                  <span className="font-bold text-primary">
+                    {confirmingPayoutAction.payout.vendorName}
+                  </span>{" "}
+                  ({formatCurrency(confirmingPayoutAction.payout.amount)}) to in-progress processing?
+                </p>
+              ) : (
+                <>
+                  <p>
+                    Are you sure you want to reject/revert payout request for{" "}
+                    <span className="font-bold text-primary">
+                      {confirmingPayoutAction.payout.vendorName}
+                    </span>{" "}
+                    ({formatCurrency(confirmingPayoutAction.payout.amount)})?
+                  </p>
+                  <p className="text-[11px] text-highlight font-medium">
+                    All associated sub-orders will be released back to the vendor&apos;s available withdrawal balance.
+                  </p>
+                </>
+              )}
+            </div>
+          ) : undefined
+        }
       />
     </div>
   );

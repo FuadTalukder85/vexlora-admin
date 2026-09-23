@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import {
@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
+import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { PaginateTable, ColumnDef } from "@/components/ui/PaginateTable";
 import { TableActions, TableActionButton } from "@/components/ui/TableActions";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -25,6 +26,10 @@ export const VendorTable: React.FC = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [selectedVendor, setSelectedVendor] = useState<VendorProfile | null>(null);
+  const [statusChangingVendor, setStatusChangingVendor] = useState<{
+    vendor: VendorProfile;
+    newStatus: VendorProfile["status"];
+  } | null>(null);
 
   const { data, isLoading } = useAdminVendors({
     searchTerm,
@@ -35,10 +40,17 @@ export const VendorTable: React.FC = () => {
 
   const updateStatusMutation = useUpdateVendorStatus();
 
-  const handleStatusChange = async (
+  const handleStatusChange = (
     vendor: VendorProfile,
     newStatus: VendorProfile["status"]
   ) => {
+    if (vendor.status === newStatus) return;
+    setStatusChangingVendor({ vendor, newStatus });
+  };
+
+  const handleConfirmStatusChange = async () => {
+    if (!statusChangingVendor) return;
+    const { vendor, newStatus } = statusChangingVendor;
     try {
       await updateStatusMutation.mutateAsync({
         id: vendor.id,
@@ -47,6 +59,7 @@ export const VendorTable: React.FC = () => {
       toast.success(
         `Vendor "${vendor.storeName}" status updated to ${newStatus}`
       );
+      setStatusChangingVendor(null);
     } catch (error: any) {
       toast.error(
         error.response?.data?.message || "Failed to update vendor status"
@@ -250,6 +263,56 @@ export const VendorTable: React.FC = () => {
           </div>
         </Modal>
       )}
+
+      {/* Change Vendor Status Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={!!statusChangingVendor}
+        onClose={() => {
+          if (!updateStatusMutation.isPending) {
+            setStatusChangingVendor(null);
+          }
+        }}
+        onConfirm={handleConfirmStatusChange}
+        title={
+          statusChangingVendor?.newStatus === "SUSPENDED" ||
+          statusChangingVendor?.newStatus === "REJECTED"
+            ? `Suspend / Reject Merchant "${statusChangingVendor?.vendor.storeName}"`
+            : `Set Merchant Status to ${statusChangingVendor?.newStatus}`
+        }
+        confirmText={
+          statusChangingVendor?.newStatus === "SUSPENDED" ||
+          statusChangingVendor?.newStatus === "REJECTED"
+            ? "Confirm Suspension"
+            : "Confirm Status Change"
+        }
+        variant={
+          statusChangingVendor?.newStatus === "SUSPENDED" ||
+          statusChangingVendor?.newStatus === "REJECTED"
+            ? "danger"
+            : "primary"
+        }
+        isLoading={updateStatusMutation.isPending}
+        description={
+          statusChangingVendor ? (
+            <div className="space-y-2">
+              <p>
+                Are you sure you want to change the status of store{" "}
+                <span className="font-bold text-primary">
+                  &quot;{statusChangingVendor.vendor.storeName}&quot;
+                </span>{" "}
+                to <span className="font-bold">{statusChangingVendor.newStatus}</span>?
+              </p>
+              <p className="text-[11px] text-secondary">
+                {statusChangingVendor.newStatus === "APPROVED"
+                  ? "The vendor will be authorized to manage products, process orders, and withdraw payouts."
+                  : statusChangingVendor.newStatus === "SUSPENDED"
+                  ? "Suspending this merchant will temporarily freeze their active store products from checkout."
+                  : `Merchant status will update to ${statusChangingVendor.newStatus}.`}
+              </p>
+            </div>
+          ) : undefined
+        }
+      />
     </div>
   );
 };

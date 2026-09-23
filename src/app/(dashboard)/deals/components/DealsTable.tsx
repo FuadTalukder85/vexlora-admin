@@ -22,6 +22,7 @@ import { PaginateTable, ColumnDef } from "@/components/ui/PaginateTable";
 import { TableActions, TableActionButton } from "@/components/ui/TableActions";
 import { AdminReviewDealModal, DealRequestItem } from "./AdminReviewDealModal";
 import { AdminDirectDealModal } from "./AdminDirectDealModal";
+import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { DealsSkeleton } from "./DealsSkeleton";
 import { getAdminSocket } from "@/lib/socket";
 import { toast } from "sonner";
@@ -63,6 +64,8 @@ export const DealsTable: React.FC = () => {
   // Direct Deal Modal State
   const [isDirectModalOpen, setIsDirectModalOpen] = useState(false);
   const [allProducts, setAllProducts] = useState<Array<{ id: string; title: string; basePrice: number; vendor?: { storeName: string } }>>([]);
+  const [cancellingDealId, setCancellingDealId] = useState<string | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const fetchData = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
@@ -128,15 +131,23 @@ export const DealsTable: React.FC = () => {
     }
   };
 
-  const handleCancelDeal = async (dealId: string) => {
-    if (!confirm("Are you sure you want to cancel this deal immediately?")) return;
+  const handleCancelDeal = (dealId: string) => {
+    setCancellingDealId(dealId);
+  };
 
+  const handleConfirmCancelDeal = async () => {
+    if (!cancellingDealId) return;
+
+    setIsCancelling(true);
     try {
-      await apiClient.patch(`/deals/${dealId}/cancel`);
+      await apiClient.patch(`/deals/${cancellingDealId}/cancel`);
       toast.success("Deal cancelled successfully");
-      fetchData();
+      setCancellingDealId(null);
+      fetchData(true);
     } catch {
       toast.error("Failed to cancel deal");
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -554,6 +565,22 @@ export const DealsTable: React.FC = () => {
         onClose={() => setIsDirectModalOpen(false)}
         products={allProducts}
         onSuccess={fetchData}
+      />
+
+      {/* Cancel Deal Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={!!cancellingDealId}
+        onClose={() => {
+          if (!isCancelling) {
+            setCancellingDealId(null);
+          }
+        }}
+        onConfirm={handleConfirmCancelDeal}
+        title="Cancel Promotional Deal"
+        confirmText="Cancel Deal"
+        variant="danger"
+        isLoading={isCancelling}
+        description="Are you sure you want to cancel this flash deal immediately? The product pricing will revert back to its standard catalogue price."
       />
     </div>
   );
