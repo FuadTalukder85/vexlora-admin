@@ -10,6 +10,8 @@ import { ImageUploadDropzone } from "@/components/ui/ImageUploadDropzone";
 import { User } from "@/types/auth";
 import { toast } from "sonner";
 
+import { useAdminStore } from "@/stores/useAdminStore";
+
 interface AdminProfileTabProps {
   user: User & { phone?: string | null; image?: string | null; isSuperAdmin?: boolean };
   onUpdateProfile: (data: { name?: string; phone?: string | null }) => Promise<any>;
@@ -25,8 +27,15 @@ export const AdminProfileTab: React.FC<AdminProfileTabProps> = ({
   onRemoveAvatar,
   isUpdating,
 }) => {
+  const { user: storeUser } = useAdminStore();
   const [adminName, setAdminName] = useState(user.name || "");
   const [adminPhone, setAdminPhone] = useState(user.phone || "");
+
+  const customRoleName =
+    user.assignedRoles?.[0] ||
+    user.userRoles?.[0]?.role?.name ||
+    storeUser?.assignedRoles?.[0] ||
+    storeUser?.userRoles?.[0]?.role?.name;
 
   useEffect(() => {
     setAdminName(user.name || "");
@@ -92,11 +101,23 @@ export const AdminProfileTab: React.FC<AdminProfileTabProps> = ({
             </div>
             <div>
               <label className="text-xs font-semibold text-primary tracking-wide block mb-1">
-                Authorization Tier
+                Authorization Tier & Delegated Role
               </label>
-              <div className="flex items-center gap-2 mt-2">
-                <Badge variant="primary">{user.role}</Badge>
-                {user.isSuperAdmin && <Badge variant="success">SUPER ADMIN</Badge>}
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                {user.isSuperAdmin ? (
+                  <Badge variant="success" className="font-bold">SUPER ADMIN</Badge>
+                ) : (
+                  <>
+                    <Badge variant="neutral" className="text-xs font-semibold">
+                      Platform Admin
+                    </Badge>
+                    {customRoleName && (
+                      <Badge variant="primary" className="text-xs font-bold uppercase bg-primary text-white">
+                        Role: {customRoleName}
+                      </Badge>
+                    )}
+                  </>
+                )}
               </div>
             </div>
           </div>

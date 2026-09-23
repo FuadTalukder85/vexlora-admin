@@ -10,10 +10,13 @@ import { AdminDangerZoneTab } from "./components/AdminDangerZoneTab";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 
+import { useAdminStore } from "@/stores/useAdminStore";
+
 type AdminProfileTabKey = "profile" | "security" | "danger";
 
 export default function AdminProfilePage() {
   const [activeTab, setActiveTab] = useState<AdminProfileTabKey>("profile");
+  const { user: storeUser } = useAdminStore();
 
   const {
     user,
@@ -32,6 +35,12 @@ export default function AdminProfilePage() {
     return <ProfileSkeleton />;
   }
 
+  const customRoleName =
+    user.assignedRoles?.[0] ||
+    user.userRoles?.[0]?.role?.name ||
+    storeUser?.assignedRoles?.[0] ||
+    storeUser?.userRoles?.[0]?.role?.name;
+
   const tabs: { id: AdminProfileTabKey; label: string; icon: React.ReactNode }[] = [
     { id: "profile", label: "Admin Profile", icon: <User className="w-4 h-4" /> },
     { id: "security", label: "Security & Sessions", icon: <ShieldCheck className="w-4 h-4" /> },
@@ -49,9 +58,21 @@ export default function AdminProfilePage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Badge variant="primary">{user.role || "ADMIN"}</Badge>
-          {user.isSuperAdmin && <Badge variant="success">SUPER ADMIN</Badge>}
+        <div className="flex items-center gap-2 flex-wrap">
+          {user.isSuperAdmin ? (
+            <Badge variant="success" className="font-bold">SUPER ADMIN</Badge>
+          ) : (
+            <>
+              <Badge variant="neutral" className="text-xs font-semibold">
+                Platform Admin
+              </Badge>
+              {customRoleName && (
+                <Badge variant="primary" className="text-xs font-bold uppercase bg-primary text-white">
+                  Role: {customRoleName}
+                </Badge>
+              )}
+            </>
+          )}
         </div>
       </div>
 
