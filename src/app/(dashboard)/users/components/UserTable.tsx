@@ -70,7 +70,7 @@ export const UserTable: React.FC = () => {
 
   const handleOpenAssignRole = (user: User) => {
     setRoleAssigningUser(user);
-    const existingRoleId = user.userRoles?.[0]?.roleId || "";
+    const existingRoleId = user.userRoles?.[0]?.roleId || "NONE";
     setSelectedRoleId(existingRoleId);
     setSelectedBaseRole(
       user.role === "SUPER_ADMIN"
@@ -91,7 +91,7 @@ export const UserTable: React.FC = () => {
         await apiClient.patch(`/users/${roleAssigningUser.id}`, { role: selectedBaseRole });
       }
       await assignRoleToUser(roleAssigningUser.id, selectedRoleId);
-      toast.success(`Assigned role successfully to ${roleAssigningUser.name || roleAssigningUser.email}`);
+      toast.success(`Role settings updated successfully for ${roleAssigningUser.name || roleAssigningUser.email}`);
       setRoleAssigningUser(null);
       await fetchUsers();
     } catch (err: unknown) {
@@ -130,36 +130,46 @@ export const UserTable: React.FC = () => {
       ),
     },
     {
-      header: "Platform & Custom Role",
+      header: "Platform Role",
       cell: (u) => (
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <Badge
-            variant={
-              u.role === "SUPER_ADMIN" || u.role === "ADMIN"
-                ? "primary"
-                : u.role === "VENDOR"
-                ? "warning"
-                : "neutral"
-            }
-          >
-            {u.role}
-          </Badge>
-
-          {u.userRoles && u.userRoles.length > 0 && (
-            <div className="flex items-center gap-1 flex-wrap">
-              {u.userRoles.map((ur) => (
-                <Badge
-                  key={ur.id || ur.roleId}
-                  variant="neutral"
-                  className="text-[10px] font-bold border-primary/30 text-primary bg-primary/[0.06] px-2 py-0.5"
-                >
-                  {ur.role?.name || "Custom Role"}
-                </Badge>
-              ))}
-            </div>
-          )}
-        </div>
+        <Badge
+          variant={
+            u.role === "SUPER_ADMIN" || u.role === "ADMIN"
+              ? "primary"
+              : u.role === "VENDOR"
+              ? "warning"
+              : "neutral"
+          }
+        >
+          {u.role}
+        </Badge>
       ),
+    },
+    {
+      header: "Custom RBAC Role",
+      cell: (u) => {
+        const activeRoles = u.userRoles || [];
+        if (activeRoles.length === 0) {
+          return (
+            <span className="text-[11px] text-secondary/70 font-medium italic">
+              Standard (Default)
+            </span>
+          );
+        }
+        return (
+          <div className="flex items-center gap-1 flex-wrap">
+            {activeRoles.map((ur) => (
+              <Badge
+                key={ur.id || ur.roleId}
+                variant="neutral"
+                className="text-[10px] font-bold border-primary/30 text-primary bg-primary/[0.06] px-2 py-0.5"
+              >
+                {ur.role?.name || "Custom Role"}
+              </Badge>
+            ))}
+          </div>
+        );
+      },
     },
     {
       header: "Status",
@@ -306,41 +316,72 @@ export const UserTable: React.FC = () => {
                 Select Custom RBAC Role (Delegated Capabilities)
               </label>
               <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                {roles.map((role) => {
-                  const isSelected = selectedRoleId === role.id;
-                  return (
+                {/* Option to clear/reset custom role */}
+                <div
+                  onClick={() => setSelectedRoleId("NONE")}
+                  className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                    selectedRoleId === "NONE"
+                      ? "border-primary bg-primary/5 text-primary shadow-sm"
+                      : "border-border bg-white text-secondary hover:border-border/80"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
                     <div
-                      key={role.id}
-                      onClick={() => setSelectedRoleId(role.id)}
-                      className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
-                        isSelected
-                          ? "border-primary bg-primary/5 text-primary shadow-sm"
-                          : "border-border bg-white text-secondary hover:border-border/80"
+                      className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                        selectedRoleId === "NONE" ? "border-primary bg-primary text-white" : "border-border"
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
-                            isSelected ? "border-primary bg-primary text-white" : "border-border"
-                          }`}
-                        >
-                          {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="text-xs font-bold text-primary">{role.name}</p>
-                            <Badge variant="neutral" className="text-[9px] px-1.5 py-0">
-                              {role.scope}
-                            </Badge>
+                      {selectedRoleId === "NONE" && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-primary">No Custom Role (Standard Defaults)</p>
+                      <p className="text-[10px] text-secondary mt-0.5">
+                        User uses standard base permissions without custom role overrides.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {roles
+                  .filter((role) => {
+                    const targetScope = selectedBaseRole === "VENDOR" ? "VENDOR" : "ADMIN";
+                    return role.scope === "BOTH" || role.scope === targetScope;
+                  })
+                  .map((role) => {
+                    const isSelected = selectedRoleId === role.id;
+                    return (
+                      <div
+                        key={role.id}
+                        onClick={() => setSelectedRoleId(role.id)}
+                        className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                          isSelected
+                            ? "border-primary bg-primary/5 text-primary shadow-sm"
+                            : "border-border bg-white text-secondary hover:border-border/80"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                              isSelected ? "border-primary bg-primary text-white" : "border-border"
+                            }`}
+                          >
+                            {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
                           </div>
-                          <p className="text-[10px] text-secondary mt-0.5">
-                            {role.rolePermissions?.length || 0} permissions &bull; {role.slug}
-                          </p>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="text-xs font-bold text-primary">{role.name}</p>
+                              <Badge variant="neutral" className="text-[9px] px-1.5 py-0">
+                                {role.scope}
+                              </Badge>
+                            </div>
+                            <p className="text-[10px] text-secondary mt-0.5">
+                              {role.rolePermissions?.length || 0} permissions &bull; {role.slug}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
               </div>
             </div>
 
