@@ -15,17 +15,26 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { formatCurrency } from "@/lib/utils";
 import { useAdminStore } from "@/stores/useAdminStore";
-import { useAdminPayoutStats } from "@/hooks/useAdminPayouts";
+import { useAdminDashboardOverview } from "@/hooks/useAdminAnalytics";
 import { DashboardSkeleton } from "./components/DashboardSkeleton";
 import { RecentOrdersTable } from "./components/RecentOrdersTable";
 
 export default function AdminDashboardPage() {
-  const { isInitialChecking, isLoading } = useAdminStore();
-  const { data: payoutStats } = useAdminPayoutStats();
+  const { isInitialChecking, isLoading: isAuthLoading } = useAdminStore();
+  const { data: overview, isLoading: isOverviewLoading } = useAdminDashboardOverview();
 
-  if (isInitialChecking || isLoading) {
+  if (isInitialChecking || isAuthLoading || isOverviewLoading) {
     return <DashboardSkeleton />;
   }
+
+  const totalGMV = overview?.totalPlatformVolume ?? 0;
+  const netCommission = overview?.totalCommissionEarned ?? 0;
+  const activeVendorsCount = overview?.activeVendorsCount ?? 0;
+  const totalOrdersCount = overview?.totalOrdersCount ?? 0;
+  const pendingPayoutsAmount = overview?.pendingPayoutsAmount ?? 0;
+  const pendingPayoutsCount = overview?.pendingPayoutsCount ?? 0;
+  const pendingVendorsCount = overview?.pendingVendorsCount ?? 0;
+  const flaggedFraudCount = overview?.flaggedFraudCount ?? 0;
 
   return (
     <div className="space-y-6">
@@ -56,33 +65,25 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <StatCard
           title="Total Platform GMV"
-          value={formatCurrency(payoutStats?.totalPlatformVolume ?? 148290.45)}
-          change="18.2%"
-          isPositive={true}
+          value={formatCurrency(totalGMV)}
           icon={DollarSign}
           iconColorClass="bg-emerald-50 text-emerald-600 border border-emerald-200"
         />
         <StatCard
           title="Net Commission Revenue"
-          value={formatCurrency(payoutStats?.totalCommissionEarned ?? 14829.05)}
-          change="14.8%"
-          isPositive={true}
+          value={formatCurrency(netCommission)}
           icon={TrendingUp}
           iconColorClass="bg-primary/10 text-primary border border-primary/20"
         />
         <StatCard
           title="Active Sellers & Stores"
-          value="142"
-          change="8.4%"
-          isPositive={true}
+          value={activeVendorsCount.toLocaleString()}
           icon={Store}
           iconColorClass="bg-indigo-50 text-indigo-600 border border-indigo-200"
         />
         <StatCard
           title="Total Marketplace Orders"
-          value="1,289"
-          change="24.5%"
-          isPositive={true}
+          value={totalOrdersCount.toLocaleString()}
           icon={ShoppingCart}
           iconColorClass="bg-highlight/10 text-highlight border border-highlight/30"
         />
@@ -97,7 +98,7 @@ export default function AdminDashboardPage() {
               Platform Escrow Guard
             </div>
             <h3 className="text-2xl font-black tracking-tight">
-              {formatCurrency(payoutStats?.pendingPayoutsAmount ?? 32490.15)}
+              {formatCurrency(pendingPayoutsAmount)}
             </h3>
             <p className="text-xs text-secondary/60 leading-relaxed">
               Total funds currently held in platform escrow pending customer delivery confirmations and payout authorization.
@@ -123,7 +124,9 @@ export default function AdminDashboardPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
             <div className="p-4 rounded-xl bg-muted border border-border space-y-1">
               <span className="text-[10px] font-bold text-secondary uppercase">Vendor Applications</span>
-              <p className="text-xl font-bold text-primary">6 Pending</p>
+              <p className="text-xl font-bold text-primary">
+                {pendingVendorsCount} Pending
+              </p>
               <Link href="/vendors" className="text-xs font-semibold text-highlight hover:underline block pt-1">
                 Review Stores &rarr;
               </Link>
@@ -132,7 +135,7 @@ export default function AdminDashboardPage() {
             <div className="p-4 rounded-xl bg-muted border border-border space-y-1">
               <span className="text-[10px] font-bold text-secondary uppercase">Payout Requests</span>
               <p className="text-xl font-bold text-emerald-600">
-                {payoutStats?.pendingPayoutsCount ?? 4} Pending
+                {pendingPayoutsCount} Pending
               </p>
               <Link href="/payouts" className="text-xs font-semibold text-highlight hover:underline block pt-1">
                 Authorize Transfers &rarr;
@@ -141,7 +144,9 @@ export default function AdminDashboardPage() {
 
             <div className="p-4 rounded-xl bg-muted border border-border space-y-1">
               <span className="text-[10px] font-bold text-secondary uppercase">Fraud Risk Alerts</span>
-              <p className="text-xl font-bold text-highlight">1 Flagged</p>
+              <p className="text-xl font-bold text-highlight">
+                {flaggedFraudCount} Flagged
+              </p>
               <Link href="/fraud" className="text-xs font-semibold text-highlight hover:underline block pt-1">
                 Inspect Audit Log &rarr;
               </Link>
