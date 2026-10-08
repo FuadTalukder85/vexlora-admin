@@ -8,8 +8,8 @@ import { Button } from "./Button";
 
 export interface ImageUploadDropzoneProps {
   currentUrl?: string | null;
-  onUpload: (file: File) => Promise<void>;
-  onRemove?: () => Promise<void>;
+  onUpload: (file: File) => Promise<void> | void;
+  onRemove?: () => Promise<void> | void;
   aspectRatio?: "square" | "banner" | "document";
   label?: string;
   helperText?: string;

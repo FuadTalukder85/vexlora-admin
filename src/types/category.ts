@@ -16,6 +16,8 @@ export interface Category {
     children?: number;
   };
   isActive: boolean;
+  isDeleted?: boolean;
+  deletedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -27,6 +29,7 @@ export interface CreateCategoryPayload {
   image?: string | null;
   commissionOverride?: number | null;
   isActive?: boolean;
+  isDeleted?: boolean;
 }
 
 export interface UpdateCategoryPayload {
@@ -36,4 +39,7 @@ export interface UpdateCategoryPayload {
   image?: string | null;
   commissionOverride?: number | null;
   isActive?: boolean;
+  isDeleted?: boolean;
+  deletedAt?: string | null;
 }
+

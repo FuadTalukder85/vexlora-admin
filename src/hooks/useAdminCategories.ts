@@ -7,6 +7,7 @@ export interface CategoryQueryParams {
   limit?: number;
   page?: number;
   parentId?: string | null;
+  status?: string;
 }
 
 export interface CategoriesResponse {
@@ -35,6 +36,9 @@ export const useAdminCategories = (params?: CategoryQueryParams) => {
       }
       if (params?.parentId !== undefined && params?.parentId !== null) {
         qParams.append("parentId", params.parentId);
+      }
+      if (params?.status && params.status !== "ALL") {
+        qParams.append("status", params.status);
       }
 
       const res = await apiClient.get(`/categories?${qParams.toString()}`);
@@ -118,3 +122,17 @@ export const useDeleteCategory = () => {
     },
   });
 };
+
+export const useUploadCategoryImage = () => {
+  return useMutation<string, Error, File>({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("image", file);
+      const res = await apiClient.post("/categories/upload-image", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      return res.data?.data?.url || res.data?.url || "";
+    },
+  });
+};
+

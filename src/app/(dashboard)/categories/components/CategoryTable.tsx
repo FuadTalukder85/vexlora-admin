@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import {
   Plus,
   Edit,
@@ -9,27 +10,28 @@ import {
   Search,
   FolderTree,
   Package,
+  RotateCcw,
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Modal } from "@/components/ui/Modal";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { PaginateTable, ColumnDef } from "@/components/ui/PaginateTable";
 import { TableActions, TableActionButton } from "@/components/ui/TableActions";
+import { CategoryModal } from "./CategoryModal";
 import { formatDate } from "@/lib/utils";
 import { Category } from "@/types/category";
 import { CategoriesSkeleton } from "./CategoriesSkeleton";
 import {
   useAdminCategories,
   useCategoryTree,
-  useCreateCategory,
   useUpdateCategory,
   useDeleteCategory,
 } from "@/hooks/useAdminCategories";
 import { toast } from "sonner";
 
 export const CategoryTable: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<"ALL" | "ACTIVE" | "ARCHIVE">("ALL");
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -37,17 +39,17 @@ export const CategoryTable: React.FC = () => {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
 
-  // Queries & Mutations with server pagination
+  // Queries & Mutations with server pagination & status filter tabs
   const { data, isLoading, isError, error, refetch } = useAdminCategories({
     page,
     limit: pageSize,
     searchTerm: searchTerm.trim() || undefined,
+    status: activeTab !== "ALL" ? activeTab : undefined,
   });
 
   // Query category tree for parent selection and accurate taxonomy hierarchy stats
   const { data: categoryTree } = useCategoryTree();
 
-  const createCategoryMutation = useCreateCategory();
   const updateCategoryMutation = useUpdateCategory();
   const deleteCategoryMutation = useDeleteCategory();
 
@@ -59,93 +61,14 @@ export const CategoryTable: React.FC = () => {
     setPage(1);
   };
 
-  // Form State
-  const [formData, setFormData] = useState({
-    name: "",
-    slug: "",
-    description: "",
-    image: "",
-    commissionOverride: 10.0,
-    parentId: "",
-    isActive: true,
-  });
-
   const handleOpenModal = (category?: Category) => {
-    if (category) {
-      setEditingCategory(category);
-      setFormData({
-        name: category.name,
-        slug: category.slug,
-        description: category.description || "",
-        image: category.image || "",
-        commissionOverride:
-          category.commissionOverride !== null && category.commissionOverride !== undefined
-            ? Number(category.commissionOverride)
-            : category.commissionRate ?? 10.0,
-        parentId: category.parentId || "",
-        isActive: category.isActive ?? true,
-      });
-    } else {
-      setEditingCategory(null);
-      setFormData({
-        name: "",
-        slug: "",
-        description: "",
-        image: "",
-        commissionOverride: 10.0,
-        parentId: "",
-        isActive: true,
-      });
-    }
+    setEditingCategory(category || null);
     setIsModalOpen(true);
   };
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.name.trim()) {
-      toast.error("Category name is required");
-      return;
-    }
-
-    const slug =
-      formData.slug.trim() ||
-      formData.name
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "");
-
-    const payload = {
-      name: formData.name.trim(),
-      slug,
-      parentId: formData.parentId ? formData.parentId : null,
-      image: formData.image.trim() || null,
-      commissionOverride:
-        formData.commissionOverride !== null && formData.commissionOverride !== undefined
-          ? Number(formData.commissionOverride)
-          : null,
-      isActive: formData.isActive,
-    };
-
-    try {
-      if (editingCategory) {
-        await updateCategoryMutation.mutateAsync({
-          id: editingCategory.id,
-          payload,
-        });
-        toast.success(`Category "${formData.name}" updated successfully!`);
-      } else {
-        await createCategoryMutation.mutateAsync(payload);
-        toast.success(`Category "${formData.name}" created successfully!`);
-      }
-      setIsModalOpen(false);
-    } catch (err: any) {
-      const msg =
-        err?.response?.data?.message ||
-        err?.message ||
-        "An error occurred while saving the category.";
-      toast.error(msg);
-    }
+  const handleCloseModal = () => {
+    setEditingCategory(null);
+    setIsModalOpen(false);
   };
 
   const handleDelete = (category: Category) => {
@@ -156,19 +79,32 @@ export const CategoryTable: React.FC = () => {
     if (!deletingCategory) return;
     try {
       await deleteCategoryMutation.mutateAsync(deletingCategory.id);
-      toast.success(`Category "${deletingCategory.name}" deleted successfully.`);
+      toast.success(`Category "${deletingCategory.name}" archived successfully.`);
       setDeletingCategory(null);
     } catch (err: any) {
       const msg =
         err?.response?.data?.message ||
         err?.message ||
-        "Failed to delete category.";
+        "Failed to archive category.";
       toast.error(msg);
     }
   };
 
-  const isSubmitting =
-    createCategoryMutation.isPending || updateCategoryMutation.isPending;
+  const handleRestore = async (category: Category) => {
+    try {
+      await updateCategoryMutation.mutateAsync({
+        id: category.id,
+        payload: { isDeleted: false, isActive: true },
+      });
+      toast.success(`Category "${category.name}" restored from archive.`);
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to restore category.";
+      toast.error(msg);
+    }
+  };
 
   // KPI Calculations
   const totalCategories = meta?.total ?? categories.length;
@@ -203,20 +139,36 @@ export const CategoryTable: React.FC = () => {
       cell: (c) => {
         const parent = categories.find((p) => p.id === c.parentId) || c.parent;
         return (
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-bold text-primary">{c.name}</span>
-              {c.parentId && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-secondary font-medium">
-                  Sub-category of {parent?.name || "Parent"}
-                </span>
+          <div className="flex items-center gap-3">
+            {c.image ? (
+              <div className="relative w-9 h-9 rounded-xl overflow-hidden border border-border shrink-0 bg-muted/30">
+                <Image
+                  src={c.image}
+                  alt={c.name}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+            ) : (
+              <div className="w-9 h-9 rounded-xl border border-border shrink-0 bg-muted/40 flex items-center justify-center text-secondary">
+                <FolderTree className="w-4 h-4" />
+              </div>
+            )}
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="font-bold text-primary truncate">{c.name}</span>
+                {c.parentId && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-secondary font-medium shrink-0">
+                    Sub of {parent?.name || "Parent"}
+                  </span>
+                )}
+              </div>
+              {c.description && (
+                <p className="text-[11px] text-secondary line-clamp-1">
+                  {c.description}
+                </p>
               )}
             </div>
-            {c.description && (
-              <p className="text-[11px] text-secondary line-clamp-1">
-                {c.description}
-              </p>
-            )}
           </div>
         );
       },
@@ -249,10 +201,12 @@ export const CategoryTable: React.FC = () => {
     {
       header: "Status",
       cell: (c) =>
-        c.isActive ? (
+        c.isDeleted ? (
+          <Badge variant="danger">Archived</Badge>
+        ) : c.isActive ? (
           <Badge variant="success">Active</Badge>
         ) : (
-          <Badge variant="danger">Inactive</Badge>
+          <Badge variant="neutral">Inactive</Badge>
         ),
     },
     {
@@ -274,14 +228,25 @@ export const CategoryTable: React.FC = () => {
           >
             <Edit className="w-4 h-4" />
           </TableActionButton>
-          <TableActionButton
-            onClick={() => handleDelete(c)}
-            hoverVariant="danger"
-            title="Delete Category"
-            disabled={deleteCategoryMutation.isPending}
-          >
-            <Trash2 className="w-4 h-4" />
-          </TableActionButton>
+          {c.isDeleted ? (
+            <TableActionButton
+              onClick={() => handleRestore(c)}
+              hoverVariant="primary"
+              title="Restore Category from Archive"
+              disabled={updateCategoryMutation.isPending}
+            >
+              <RotateCcw className="w-4 h-4 text-emerald-600" />
+            </TableActionButton>
+          ) : (
+            <TableActionButton
+              onClick={() => handleDelete(c)}
+              hoverVariant="danger"
+              title="Archive Category"
+              disabled={deleteCategoryMutation.isPending}
+            >
+              <Trash2 className="w-4 h-4" />
+            </TableActionButton>
+          )}
         </TableActions>
       ),
     },
@@ -355,29 +320,56 @@ export const CategoryTable: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. Search & Paginated Table */}
+      {/* 2. Search & Paginated Table with Status Tabs */}
       <PaginateTable
         title="All Categories"
         subtitle="Manage and organize marketplace category hierarchies"
         className="flex-1 min-h-0"
         headerContent={
-          <div className="flex items-center justify-between gap-4">
-            <div className="max-w-md w-full">
-              <Input
-                placeholder="Search category name, slug..."
-                value={searchTerm}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                leftIcon={<Search className="w-4 h-4" />}
-              />
+          <div className="flex flex-col gap-4">
+            {/* Status Filter Tabs: All, Active, Archive */}
+            <div className="border-b border-border pb-2 flex items-center gap-6 overflow-x-auto">
+              {[
+                { key: "ALL", label: "All Categories" },
+                { key: "ACTIVE", label: "Active" },
+                { key: "ARCHIVE", label: "Archive" },
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => {
+                    setActiveTab(key as "ALL" | "ACTIVE" | "ARCHIVE");
+                    setPage(1);
+                  }}
+                  className={`text-xs font-bold transition-all border-b-2 pb-1.5 whitespace-nowrap cursor-pointer ${
+                    activeTab === key
+                      ? "border-primary text-primary"
+                      : "border-transparent text-secondary hover:text-primary"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => handleOpenModal()}
-            >
-              <Plus className="w-4 h-4" />
-              Create Category
-            </Button>
+
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="max-w-md w-full">
+                <Input
+                  placeholder="Search category name, slug..."
+                  value={searchTerm}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  leftIcon={<Search className="w-4 h-4" />}
+                />
+              </div>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => handleOpenModal()}
+              >
+                <Plus className="w-4 h-4" />
+                Create Category
+              </Button>
+            </div>
           </div>
         }
         data={categories}
@@ -397,142 +389,15 @@ export const CategoryTable: React.FC = () => {
       />
 
       {/* 3. Category Creation / Edit Modal */}
-      <Modal
+      <CategoryModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title={editingCategory ? "Edit Category" : "Create New Category"}
-        maxWidth="lg"
-      >
-        <form onSubmit={handleSave} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input
-              label="Category Name *"
-              value={formData.name}
-              onChange={(e) => {
-                const name = e.target.value;
-                setFormData({
-                  ...formData,
-                  name,
-                  slug: editingCategory
-                    ? formData.slug
-                    : name
-                        .toLowerCase()
-                        .trim()
-                        .replace(/[^a-z0-9]+/g, "-")
-                        .replace(/^-+|-+$/g, ""),
-                });
-              }}
-              placeholder="e.g. Mechanical Keyboards"
-              required
-            />
+        onClose={handleCloseModal}
+        category={editingCategory}
+        treeList={treeList}
+        categories={categories}
+      />
 
-            <Input
-              label="Slug (URL identifier) *"
-              value={formData.slug}
-              onChange={(e) =>
-                setFormData({ ...formData, slug: e.target.value })
-              }
-              placeholder="e.g. mechanical-keyboards"
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="block text-sm font-semibold text-primary">
-                Parent Category (Optional)
-              </label>
-              <select
-                value={formData.parentId}
-                onChange={(e) =>
-                  setFormData({ ...formData, parentId: e.target.value })
-                }
-                className="w-full h-10 rounded-xl border border-border bg-white px-3.5 text-sm text-primary focus:border-primary focus:outline-none"
-              >
-                <option value="">None (Top-Level Root Category)</option>
-                {(treeList.length > 0 ? treeList : categories)
-                  .filter(
-                    (c) =>
-                      !editingCategory ||
-                      (c.id !== editingCategory.id && c.parentId !== editingCategory.id)
-                  )
-                  .map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </option>
-                  ))}
-              </select>
-            </div>
-
-            <Input
-              label="Commission Override (%) *"
-              type="number"
-              step="0.1"
-              min="0"
-              max="100"
-              value={formData.commissionOverride}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  commissionOverride: parseFloat(e.target.value) || 0,
-                })
-              }
-              placeholder="10.0"
-              required
-            />
-          </div>
-
-          <Input
-            label="Image URL (Optional)"
-            type="url"
-            value={formData.image}
-            onChange={(e) =>
-              setFormData({ ...formData, image: e.target.value })
-            }
-            placeholder="https://images.unsplash.com/..."
-          />
-
-          <div className="flex items-center gap-3 pt-2">
-            <label className="flex items-center gap-2 text-xs font-semibold text-primary cursor-pointer">
-              <input
-                type="checkbox"
-                checked={formData.isActive}
-                onChange={(e) =>
-                  setFormData({ ...formData, isActive: e.target.checked })
-                }
-                className="w-4 h-4 rounded text-primary focus:ring-primary"
-              />
-              Category is active and visible in marketplace catalog
-            </label>
-          </div>
-
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setIsModalOpen(false)}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              size="sm"
-              disabled={isSubmitting}
-            >
-              {isSubmitting
-                ? "Saving..."
-                : editingCategory
-                ? "Save Changes"
-                : "Create Category"}
-            </Button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* Delete Category Confirmation Modal */}
+      {/* Archive / Soft Delete Category Confirmation Modal */}
       <ConfirmationModal
         isOpen={!!deletingCategory}
         onClose={() => {
@@ -541,22 +406,22 @@ export const CategoryTable: React.FC = () => {
           }
         }}
         onConfirm={handleConfirmDelete}
-        title="Delete Taxonomy Category"
-        confirmText="Delete Category"
+        title="Archive Taxonomy Category"
+        confirmText="Archive Category"
         variant="danger"
         isLoading={deleteCategoryMutation.isPending}
         description={
           deletingCategory ? (
             <div className="space-y-2">
               <p>
-                Are you sure you want to delete category{" "}
+                Are you sure you want to archive category{" "}
                 <span className="font-bold text-primary">
                   &quot;{deletingCategory.name}&quot;
                 </span>
                 ?
               </p>
               <p className="text-[11px] text-secondary">
-                Sub-categories under this category will be gracefully re-linked to their parent category.
+                The category will be soft-deleted and moved to the Archive tab. Existing catalog products will remain intact, and you can restore this category anytime.
               </p>
             </div>
           ) : undefined
