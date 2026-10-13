@@ -9,6 +9,7 @@ import {
   ArrowUpRight,
   TrendingUp,
   ShieldCheck,
+  Plus,
 } from "lucide-react";
 import { StatCard } from "@/components/ui/StatCard";
 import { Badge } from "@/components/ui/Badge";
@@ -47,15 +48,16 @@ export default function AdminDashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-2.5">
-          <Link href="/categories">
-            <Button variant="outline" size="sm">
-              Manage Categories
-            </Button>
-          </Link>
           <Link href="/vendors">
-            <Button variant="primary" size="sm">
+            <Button variant="outline" size="sm">
               <Store className="w-4 h-4" />
               Vendor Approvals
+            </Button>
+          </Link>
+          <Link href="/categories">
+            <Button variant="primary" size="sm">
+              <Plus className="w-4 h-4" />
+              Add Category
             </Button>
           </Link>
         </div>
