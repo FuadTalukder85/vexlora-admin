@@ -2,9 +2,10 @@
 
 import React from "react";
 import Link from "next/link";
-import { Menu, Search, Bell, Plus, ShieldCheck } from "lucide-react";
+import { Menu, Bell, Plus } from "lucide-react";
 import { useAdminStore } from "@/stores/useAdminStore";
 import { AdminUserMenu } from "./AdminUserMenu";
+import { AdminMenuSearch } from "./AdminMenuSearch";
 import { Button } from "@/components/ui/Button";
 
 export const AdminHeader: React.FC = () => {
@@ -22,14 +23,7 @@ export const AdminHeader: React.FC = () => {
           <Menu className="w-5 h-5" />
         </button>
 
-        <div className="relative w-full hidden sm:block">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-secondary" />
-          <input
-            type="text"
-            placeholder="Search categories, vendors, products, transactions..."
-            className="w-full pl-10 pr-4 py-2 bg-muted/70 border border-transparent rounded-xl text-xs text-primary placeholder-secondary focus:outline-none focus:bg-white focus:border-border transition-all"
-          />
-        </div>
+        <AdminMenuSearch className="hidden sm:block" />
       </div>
 
       {/* Right: Actions & User Dropdown */}

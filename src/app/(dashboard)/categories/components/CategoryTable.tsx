@@ -115,9 +115,9 @@ export const CategoryTable: React.FC = () => {
   const avgCommission =
     categories.length > 0
       ? (
-          categories.reduce((acc, c) => acc + (c.commissionRate ?? 10), 0) /
-          categories.length
-        ).toFixed(1)
+        categories.reduce((acc, c) => acc + (c.commissionRate ?? 10), 0) /
+        categories.length
+      ).toFixed(1)
       : "10.0";
 
   const totalProducts = categories.reduce(
@@ -322,11 +322,9 @@ export const CategoryTable: React.FC = () => {
 
       {/* 2. Search & Paginated Table with Status Tabs */}
       <PaginateTable
-        title="All Categories"
-        subtitle="Manage and organize marketplace category hierarchies"
         className="flex-1 min-h-0"
         headerContent={
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             {/* Status Filter Tabs: All, Active, Archive */}
             <div className="border-b border-border pb-2 flex items-center gap-6 overflow-x-auto">
               {[
@@ -341,19 +339,19 @@ export const CategoryTable: React.FC = () => {
                     setActiveTab(key as "ALL" | "ACTIVE" | "ARCHIVE");
                     setPage(1);
                   }}
-                  className={`text-xs font-bold transition-all border-b-2 pb-1.5 whitespace-nowrap cursor-pointer ${
-                    activeTab === key
+                  className={`text-xs font-bold transition-all border-b-2 pb-1.5 whitespace-nowrap cursor-pointer ${activeTab === key
                       ? "border-primary text-primary"
                       : "border-transparent text-secondary hover:text-primary"
-                  }`}
+                    }`}
                 >
                   {label}
                 </button>
               ))}
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="max-w-md w-full">
+            {/* Right Action Tools: Search & Create Category */}
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <div className="w-full sm:w-64 md:w-72">
                 <Input
                   placeholder="Search category name, slug..."
                   value={searchTerm}
@@ -365,6 +363,7 @@ export const CategoryTable: React.FC = () => {
                 variant="primary"
                 size="sm"
                 onClick={() => handleOpenModal()}
+                className="whitespace-nowrap shrink-0 h-10"
               >
                 <Plus className="w-4 h-4" />
                 Create Category
